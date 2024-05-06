@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class VkPersonalMessageObject:
     date: int
     from_id: int
+    peer_id: int
     id: int
     conversation_message_id: int
     text: str
@@ -21,5 +22,5 @@ class VkUpdate:
 
 @dataclass
 class Message:
-    user_id: int
+    peer_id: int
     text: str

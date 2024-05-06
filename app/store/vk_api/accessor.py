@@ -6,7 +6,7 @@ from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
-from app.store.vk_api.models import (
+from app.store.vk_api.dataclasses import (
     Message,
     VkPersonalMessageObject,
     VkUpdate,
@@ -104,6 +104,7 @@ class VkApiAccessor(BaseAccessor):
                         vk_object=VkPersonalMessageObject(
                             date=update["object"]["message"]["date"],
                             from_id=update["object"]["message"]["from_id"],
+                            peer_id=update["object"]["message"]["peer_id"],
                             id=update["object"]["message"]["from_id"],
                             conversation_message_id=update["object"]["message"][
                                 "conversation_message_id"
@@ -128,9 +129,8 @@ class VkApiAccessor(BaseAccessor):
                 self._API_PATH,
                 "messages.send",
                 params={
-                    "user_id": message.user_id,
                     "random_id": random.randint(1, 2**32),
-                    "peer_id": f"-{self.app.config.bot.group_id}",
+                    "peer_id": message.peer_id,
                     "message": message.text,
                     "access_token": self.app.config.bot.token,
                 },
