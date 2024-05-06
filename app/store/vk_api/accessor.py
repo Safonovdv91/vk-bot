@@ -16,13 +16,17 @@ from app.store.vk_api.poller import Poller
 if typing.TYPE_CHECKING:
     from app.web.app import Application
 
-API_PATH = "https://api.vk.com/method/"
-API_VERSION = "5.131"
-
 
 class VkApiAccessor(BaseAccessor):
     def __init__(self, app: "Application", *args, **kwargs):
         super().__init__(app, *args, **kwargs)
+
+        self._API_PATH: str = "https://api.vk.com/method/"
+        self._API_VERSION: str = "5.131"
+        self._VK_METHOD_ACT: str = (
+            "a_check"  # Константа от ВК API. Для получения новых событий из ВКю
+        )
+        self._VK_METHOD_WAIT: int = kwargs.get("wait", 25)
 
         self.session: ClientSession | None = None
         self.key: str | None = None
@@ -50,15 +54,14 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info("Останавливаем poller")
             await self.poller.stop()
 
-    @staticmethod
-    def _build_query(host: str, method: str, params: dict) -> str:
-        params.setdefault("v", API_VERSION)
+    def _build_query(self, host: str, method: str, params: dict) -> str:
+        params.setdefault("v", self._API_VERSION)
         return f"{urljoin(host, method)}?{urlencode(params)}"
 
     async def _get_long_poll_service(self) -> None:
         async with self.session.get(
             self._build_query(
-                host=API_PATH,
+                host=self._API_PATH,
                 method="groups.getLongPollServer",
                 params={
                     "group_id": self.app.config.bot.group_id,
@@ -77,10 +80,10 @@ class VkApiAccessor(BaseAccessor):
                 host=self.server,
                 method="",
                 params={
-                    "act": "a_check",
+                    "act": self._VK_METHOD_ACT,
                     "key": self.key,
                     "ts": self.ts,
-                    "wait": 30,
+                    "wait": self._VK_METHOD_WAIT,
                 },
             )
         ) as response:
@@ -88,8 +91,7 @@ class VkApiAccessor(BaseAccessor):
             try:
                 self.ts = data["ts"]
             except KeyError:
-                self.logger.exception("Отсутствует ключ в ts в:")
-                self.logger.exception(data)
+                self.logger.exception("Отсутствует ключ в ts в \n %s", data)
 
             self.logger.info(data)
             try:
@@ -123,7 +125,7 @@ class VkApiAccessor(BaseAccessor):
     async def send_personal_message(self, message: Message) -> None:
         async with self.session.post(
             self._build_query(
-                API_PATH,
+                self._API_PATH,
                 "messages.send",
                 params={
                     "user_id": message.user_id,
