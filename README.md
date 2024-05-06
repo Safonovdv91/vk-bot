@@ -1,5 +1,8 @@
 # Памятка по работе с проектом
-
+Softik.d@gmail.com  
+Сафонов Дмитрий Владимирович  
+tg: @SoftikMy1
+vk бота : [Группа в ВК](https://vk.com/club225776298)
 ## Начало работы с проектом
 Для начала работы с проектом необходимо создать репозиторий по [шаблону](https://github.com/ktsstudio/backend-school-template-project). Для этого используйте кнопку "Use this template".
 
