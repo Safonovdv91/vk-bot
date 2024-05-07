@@ -8,7 +8,8 @@ from aiohttp.client import ClientSession
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
-    Message,
+    SendMessage,
+    SendMessageWithKeyboard,
 )
 from app.store.vk_api.poller import Poller
 
@@ -93,7 +94,7 @@ class VkApiAccessor(BaseAccessor):
             long_poll_response: LongPollResponse = (
                 LongPollResponse.Schema().load(data)
             )
-
+            self.logger.info("lpresponse \n   %s", long_poll_response)
             try:
                 messages = [
                     update
@@ -107,7 +108,26 @@ class VkApiAccessor(BaseAccessor):
                     "Не вышло переслать сообщения в Bot Manager"
                 )
 
-    async def send_personal_message(self, message: Message) -> None:
+    async def send_personal_message(self, message: SendMessage) -> None:
+        async with self.session.post(
+            self._build_query(
+                self._API_PATH,
+                "messages.send",
+                params={
+                    "access_token": self.app.config.bot.token,
+                    "random_id": random.randint(1, 2**32),
+                    "peer_id": message.peer_id,
+                    "message": message.text.upper(),
+                },
+            )
+        ) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def send_message_with_keyboard(
+        self, message: SendMessageWithKeyboard
+    ) -> None:
+        self.logger.info("Высылаем сообщение с клавиатурой")
         async with self.session.post(
             self._build_query(
                 self._API_PATH,
@@ -116,6 +136,7 @@ class VkApiAccessor(BaseAccessor):
                     "random_id": random.randint(1, 2**32),
                     "peer_id": message.peer_id,
                     "message": message.text,
+                    "keyboard": message.keyboard,
                     "access_token": self.app.config.bot.token,
                 },
             )
