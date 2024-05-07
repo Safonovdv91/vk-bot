@@ -59,4 +59,9 @@ class LongPollResponse:
 @dataclass
 class SendMessage:
     peer_id: int
-    text: str | None = None
+    text: str | None = ""
+
+
+@dataclass
+class SendMessageWithKeyboard(SendMessage):
+    keyboard: str = None
