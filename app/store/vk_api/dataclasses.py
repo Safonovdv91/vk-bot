@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 from marshmallow import EXCLUDE, Schema
-from marshmallow_dataclass import dataclass as marshmallow_dataclass
+from marshmallow_dataclass import dataclass as ms_dataclass
 
 
-@marshmallow_dataclass
+@dataclass
 class ClientInfo:
     button_actions: list[str]
 
@@ -13,7 +13,7 @@ class ClientInfo:
         unknown = EXCLUDE
 
 
-@marshmallow_dataclass
+@dataclass
 class Message:
     date: int
     from_id: int
@@ -25,7 +25,7 @@ class Message:
         unknown = EXCLUDE
 
 
-@marshmallow_dataclass
+@dataclass
 class Object:
     message: Message | None = None
     client_info: ClientInfo | None = None
@@ -34,7 +34,7 @@ class Object:
         unknown = EXCLUDE
 
 
-@marshmallow_dataclass
+@dataclass
 class Update:
     group_id: int
     type: str
@@ -46,7 +46,7 @@ class Update:
         unknown = EXCLUDE
 
 
-@marshmallow_dataclass
+@ms_dataclass
 class LongPollResponse:
     ts: str | None = None
     updates: list[Update] = list
