@@ -8,7 +8,6 @@ from aiohttp.client import ClientSession
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
-    LongPollResponseSchema,
     Message,
 )
 from app.store.vk_api.poller import Poller
@@ -92,8 +91,9 @@ class VkApiAccessor(BaseAccessor):
                 self.ts = data.get("ts")
 
             long_poll_response: LongPollResponse = (
-                LongPollResponseSchema().load(data)
+                LongPollResponse.Schema().load(data)
             )
+
             try:
                 messages = [
                     update

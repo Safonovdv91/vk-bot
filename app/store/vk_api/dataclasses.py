@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
-import marshmallow_dataclass
-from marshmallow import EXCLUDE
+from marshmallow import EXCLUDE, Schema
+from marshmallow_dataclass import dataclass as marshmallow_dataclass
 
 
-@dataclass
+@marshmallow_dataclass
 class ClientInfo:
     button_actions: list[str]
 
@@ -12,7 +13,7 @@ class ClientInfo:
         unknown = EXCLUDE
 
 
-@dataclass
+@marshmallow_dataclass
 class Message:
     date: int
     from_id: int
@@ -24,7 +25,7 @@ class Message:
         unknown = EXCLUDE
 
 
-@dataclass
+@marshmallow_dataclass
 class Object:
     message: Message | None = None
     client_info: ClientInfo | None = None
@@ -33,7 +34,7 @@ class Object:
         unknown = EXCLUDE
 
 
-@dataclass
+@marshmallow_dataclass
 class Update:
     group_id: int
     type: str
@@ -45,10 +46,11 @@ class Update:
         unknown = EXCLUDE
 
 
-@dataclass
+@marshmallow_dataclass
 class LongPollResponse:
-    ts: str
+    ts: str | None = None
     updates: list[Update] = list
+    Schema: ClassVar[type[Schema]] = Schema
 
     class Meta:
         unknown = EXCLUDE
@@ -58,10 +60,3 @@ class LongPollResponse:
 class SendMessage:
     peer_id: int
     text: str | None = None
-
-
-ClientInfoSchema = marshmallow_dataclass.class_schema(ClientInfo)
-MessageSchema = marshmallow_dataclass.class_schema(Message)
-ObjectSchema = marshmallow_dataclass.class_schema(Object)
-UpdateSchema = marshmallow_dataclass.class_schema(Update)
-LongPollResponseSchema = marshmallow_dataclass.class_schema(LongPollResponse)
