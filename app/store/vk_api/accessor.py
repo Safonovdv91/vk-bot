@@ -7,9 +7,9 @@ from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import (
+    LongPollResponse,
+    LongPollResponseSchema,
     Message,
-    VkPersonalMessageObject,
-    VkUpdate,
 )
 from app.store.vk_api.poller import Poller
 
@@ -88,34 +88,18 @@ class VkApiAccessor(BaseAccessor):
             )
         ) as response:
             data = await response.json()
-            try:
-                self.ts = data["ts"]
-            except KeyError:
-                self.logger.exception("Отсутствует ключ в ts в \n %s", data)
+            if data.get("ts") is not None:
+                self.ts = data.get("ts")
 
-            self.logger.info(data)
+            long_poll_response: LongPollResponse = (
+                LongPollResponseSchema().load(data)
+            )
             try:
                 messages = [
-                    VkUpdate(
-                        group_id=update["group_id"],
-                        type=update["type"],
-                        event_id=update["event_id"],
-                        v=update["v"],
-                        vk_object=VkPersonalMessageObject(
-                            date=update["object"]["message"]["date"],
-                            from_id=update["object"]["message"]["from_id"],
-                            peer_id=update["object"]["message"]["peer_id"],
-                            id=update["object"]["message"]["from_id"],
-                            conversation_message_id=update["object"]["message"][
-                                "conversation_message_id"
-                            ],
-                            text=update["object"]["message"]["text"],
-                        ),
-                    )
-                    for update in data.get("updates", [])
-                    if update["type"] in {"message_new"}
+                    update
+                    for update in long_poll_response.updates
+                    if update.type == "message_new"
                 ]
-
                 await self.app.store.bots_manager.handle_updates(messages)
 
             except Exception:
