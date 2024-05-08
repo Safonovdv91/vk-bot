@@ -1,3 +1,4 @@
+import json
 import random
 import typing
 from logging import getLogger
@@ -104,6 +105,12 @@ class VkApiAccessor(BaseAccessor):
                     for update in long_poll_response.updates
                     if update.type == "message_new"
                 ]
+                events = [
+                    event
+                    for event in long_poll_response.updates
+                    if event.type == "message_event"
+                ]
+                await self.app.store.bots_manager.handle_events(events)
                 await self.app.store.bots_manager.handle_updates(messages)
 
             except Exception:
@@ -111,7 +118,11 @@ class VkApiAccessor(BaseAccessor):
                     "Не вышло переслать сообщения в Bot Manager"
                 )
 
-    async def send_personal_message(self, message: SendMessage) -> None:
+    async def send_message(self, message: SendMessage) -> None:
+        """Выслать простое текстовое сообщение
+        :param message: Сообщение котороые необходимо выслать.
+        :return:
+        """
         async with self.session.post(
             self._build_query(
                 self._API_PATH,
@@ -130,6 +141,10 @@ class VkApiAccessor(BaseAccessor):
     async def send_message_with_keyboard(
         self, message: SendMessageWithKeyboard
     ) -> None:
+        """Послать сообщение с клавиатурой
+        :param message: Сообщение которое необходимо выслать с клавиатурой.
+        :return:
+        """
         self.logger.info("Высылаем сообщение с клавиатурой")
         async with self.session.post(
             self._build_query(
@@ -148,6 +163,9 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info(data)
 
     async def edit_message(self, message: SendEditMessage) -> None:
+        """Редактирует сообщение в беседе
+        :param message: сообщение которое необходимо отредактировать.
+        """
         self.logger.info("Заменяем сообщение")
         async with self.session.post(
             self._build_query(
@@ -166,6 +184,11 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info(data)
 
     async def pin_message(self, peer_id: int, message_id: int) -> None:
+        """Закрепляет сообщение
+        :param peer_id: Идентификатор диалога, в котором нажата кнопка.
+        :param message_id: Идентификатор сообщения которое надо запинить.
+        :return:
+        """
         self.logger.info("Закрепляем сообщение")
         async with self.session.post(
             self._build_query(
@@ -182,6 +205,9 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info(data)
 
     async def unpin_message(self, peer_id: int) -> None:
+        """Открепляет закрепленное сообщение
+        :param peer_id: Идентификатор диалога, в котором нажата кнопка.
+        """
         self.logger.info("Открепляем сообщение")
         async with self.session.post(
             self._build_query(
@@ -189,6 +215,34 @@ class VkApiAccessor(BaseAccessor):
                 "messages.unpin",
                 params={
                     "random_id": random.randint(1, 2**32),
+                    "peer_id": peer_id,
+                    "access_token": self.app.config.bot.token,
+                },
+            )
+        ) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def send_event_answer(
+        self, event_id, user_id, response_text, peer_id: int
+    ) -> None:
+        """Отправляет ответ на событие нажатия callback-кнопки.
+        :param event_id: id события нажатия на кнопку.
+        :param user_id: id пользователя, нажавшего на кнопку.
+        :param peer_id: id диалога, в котором нажата кнопка.
+        :param response_text: Текст ответа, который будет всплывет.
+        """
+        self.logger.info("Обрабатываем нажатие на callback")
+        async with self.session.post(
+            self._build_query(
+                self._API_PATH,
+                "messages.sendMessageEventAnswer",
+                params={
+                    "event_id": event_id,
+                    "event_data": json.dumps(
+                        {"type": "show_snackbar", "text": response_text}
+                    ),
+                    "user_id": user_id,
                     "peer_id": peer_id,
                     "access_token": self.app.config.bot.token,
                 },
