@@ -5,22 +5,6 @@ from marshmallow import EXCLUDE, Schema
 from marshmallow_dataclass import dataclass as ms_dataclass
 
 
-class EventObject:
-    user_id: int
-    peer_id: int
-    event_id: str
-    payload: str
-
-
-@dataclass
-class Event:
-    group_id: int
-    type: str
-    event_id: str
-    v: str
-    object: EventObject
-
-
 @dataclass
 class ClientInfo:
     button_actions: list[str]

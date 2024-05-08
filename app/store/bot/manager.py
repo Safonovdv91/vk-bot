@@ -2,7 +2,6 @@ import typing
 from logging import getLogger
 
 from app.store.vk_api.dataclasses import (
-    Event,
     SendMessage,
     SendMessageWithKeyboard,
     Update,
@@ -20,7 +19,7 @@ class BotManager:
         self.logger = getLogger("BotManager")
         self.game_on = False
 
-    async def handle_events(self, events: list[Event]):
+    async def handle_events(self, events: list[Update]):
         self.logger.info("Получены события \n %s", events)
         for event in events:
             await self.app.store.vk_api.send_event_answer(
