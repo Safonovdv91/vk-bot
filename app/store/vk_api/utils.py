@@ -1,14 +1,14 @@
 import json
-from typing import Optional, Union
+from logging import getLogger
 
 
 class VkButton:
     def __init__(
-            self,
-            label: str,
-            color: str = "primary",
-            payload: Optional[Union[str, dict]] = None,
-            type_btn: str = "text"
+        self,
+        label: str,
+        color: str = "primary",
+        payload: str | dict | None = None,
+        type_btn: str = "text",
     ):
         self.color = color
         self.label = label
@@ -18,15 +18,14 @@ class VkButton:
             self.payload = json.dumps(payload)
 
     def get(self):
-        button = {
+        return {
             "action": {
                 "type": "text",
                 "payload": self.payload,
-                "label": self.label
+                "label": self.label,
             },
             "color": self.color,
         }
-        return button
 
 
 class VkKeyboard:
@@ -35,30 +34,25 @@ class VkKeyboard:
     _max_buttons = 40
 
     def __init__(self, one_time: bool = False, inline: bool = False):
-        self.keyboard = {
-            "one_time": one_time,
-            "buttons": [],
-            "inline": inline
-        }
+        self.keyboard = {"one_time": one_time, "buttons": [], "inline": inline}
+        self.buttons = 0
+        self.logger = getLogger("VkKeyboard")
 
-    def add_line(self, buttons: list[dict]):
+    async def add_line(self, buttons: list[dict]):
+        if len(buttons) > self._max_width:
+            raise ValueError(
+                "Слишком много кнопок в ряде: должно быть меньше: %s ",
+                self._max_width,
+            )
+        if len(self.keyboard["buttons"]) > self._max_lines:
+            raise ValueError("Слишком много рядов кнопок: %s ", self._max_lines)
+        self.buttons += len(buttons)
+        if self.buttons > self._max_buttons:
+            raise ValueError(
+                f"Слишком много кнопок: {self.buttons} > {self._max_buttons}"
+            )
+
         self.keyboard["buttons"].append(buttons)
 
-    def get_keyboard(self):
+    async def get_keyboard(self):
         return json.dumps(self.keyboard, ensure_ascii=False)
-
-
-if __name__ == "__main__":
-    # Пример использования:
-    vk_keyboard = VkKeyboard(one_time=True)
-
-    btn1 = VkButton(label="Большая кнопка", color="primary")
-    # print(btn1.get())
-    #
-    # vk_keyboard.add_line(
-    #     [vk_keyboard.add_button(label="Большая кнопка", color="primary"), btn1.get()]
-    # )
-    #
-    # Получение JSON-строки клавиатуры для отправки через VK API
-    keyboard_json = vk_keyboard.get_keyboard()
-    print(keyboard_json)
