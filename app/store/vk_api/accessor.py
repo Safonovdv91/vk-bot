@@ -1,5 +1,6 @@
 import random
 import typing
+from logging import getLogger
 from urllib.parse import urlencode, urljoin
 
 from aiohttp import TCPConnector
@@ -33,6 +34,7 @@ class VkApiAccessor(BaseAccessor):
         self.server: str | None = None
         self.poller: Poller | None = None
         self.ts: int | None = None
+        self.logger = getLogger("VkApiAccessor")
 
     async def connect(self, app: "Application") -> None:
         self.session = ClientSession(connector=TCPConnector(verify_ssl=False))
