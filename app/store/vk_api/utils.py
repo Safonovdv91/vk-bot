@@ -13,14 +13,14 @@ class VkButton:
         self.color = color
         self.label = label
         self.payload = None
-        self.type = type_btn
+        self.type_btn = type_btn
         if isinstance(payload, dict):
             self.payload = json.dumps(payload)
 
     def get(self):
         return {
             "action": {
-                "type": "text",
+                "type": self.type_btn,
                 "payload": self.payload,
                 "label": self.label,
             },
