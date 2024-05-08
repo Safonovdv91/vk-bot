@@ -65,3 +65,8 @@ class SendMessage:
 @dataclass
 class SendMessageWithKeyboard(SendMessage):
     keyboard: str = None
+
+
+@dataclass
+class SendEditMessage(SendMessage):
+    message_id: int = 0

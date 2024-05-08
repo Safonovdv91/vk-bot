@@ -9,6 +9,7 @@ from aiohttp.client import ClientSession
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
+    SendEditMessage,
     SendMessage,
     SendMessageWithKeyboard,
 )
@@ -139,6 +140,56 @@ class VkApiAccessor(BaseAccessor):
                     "peer_id": message.peer_id,
                     "message": message.text,
                     "keyboard": message.keyboard,
+                    "access_token": self.app.config.bot.token,
+                },
+            )
+        ) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def edit_message(self, message: SendEditMessage) -> None:
+        self.logger.info("Заменяем сообщение")
+        async with self.session.post(
+            self._build_query(
+                self._API_PATH,
+                "messages.edit",
+                params={
+                    "random_id": random.randint(1, 2**32),
+                    "peer_id": message.peer_id,
+                    "conversation_message_id": message.message_id,
+                    "message": message.text,
+                    "access_token": self.app.config.bot.token,
+                },
+            )
+        ) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def pin_message(self, peer_id: int, message_id: int) -> None:
+        self.logger.info("Закрепляем сообщение")
+        async with self.session.post(
+            self._build_query(
+                self._API_PATH,
+                "messages.pin",
+                params={
+                    "peer_id": peer_id,
+                    "conversation_message_id": message_id,
+                    "access_token": self.app.config.bot.token,
+                },
+            )
+        ) as response:
+            data = await response.json()
+            self.logger.info(data)
+
+    async def unpin_message(self, peer_id: int) -> None:
+        self.logger.info("Открепляем сообщение")
+        async with self.session.post(
+            self._build_query(
+                self._API_PATH,
+                "messages.unpin",
+                params={
+                    "random_id": random.randint(1, 2**32),
+                    "peer_id": peer_id,
                     "access_token": self.app.config.bot.token,
                 },
             )
