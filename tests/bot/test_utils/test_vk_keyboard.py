@@ -14,7 +14,8 @@ class TestCreateVkKeyboard:
         await keyboard.add_line(btn1.get())
         keyboard_json = await keyboard.get_keyboard()
         test_keyboard_json = (
-            '{"one_time": false, "buttons": [{"action": {"type": "text", "payload": null,'
+            '{"one_time": false, "buttons": '
+            '[{"action": {"type": "text", "payload": null,'
             ' "label": "test_btn"}, "color": "primary"}], "inline": false}'
         )
         assert keyboard_json == test_keyboard_json
