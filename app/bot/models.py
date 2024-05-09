@@ -1,11 +1,22 @@
-from sqlalchemy import ForeignKey, String
+from enum import Enum
+
+from sqlalchemy import Enum as PgEnum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.quize.models import AnswerModel, QuestionModel
+from app.quize.models import Answer, Question
 from app.store.database import BaseModel
 
 
-class GameModel(BaseModel):
+class GameStage(Enum):
+    NOT_START = "NOT_START"
+    REGISTRATION_GAMERS = "REGISTRATION_GAMERS"
+    WAITING_CALLBACK = "WAITING_CALLBACK"
+    WAITING_ANSWER = "WAITING_ANSWER"
+    FINISHED = "FINISHED"
+    CANCELED = "CANCELED"
+
+
+class Game(BaseModel):
     __tablename__ = "games"
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_id: Mapped[int | None] = mapped_column(default=None)
@@ -13,40 +24,31 @@ class GameModel(BaseModel):
         default=None
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-    stage_id: Mapped[int] = mapped_column(ForeignKey("stages.id"))
-
-    stage: Mapped["StageModel"] = relationship(back_populates="games")
-    question: Mapped["QuestionModel"] = relationship(back_populates="games")
-    players: Mapped[list["PlayerModel"]] = relationship(
-        back_populates="game"
+    game_stage: Mapped[PgEnum] = mapped_column(
+        PgEnum(GameStage), default=GameStage.NOT_START
     )
-    player_answers_games: Mapped[list["PlayerAnswerGameModel"]] = relationship(
+
+    question: Mapped["Question"] = relationship(back_populates="games")
+    players: Mapped[list["Player"]] = relationship(back_populates="game")
+    player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
         back_populates="game", cascade="all, delete-orphan"
     )
 
 
-class StageModel(BaseModel):
-    __tablename__ = "stages"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str | None] = mapped_column(String[40])
-
-    games: Mapped[list["GameModel"]] = relationship(back_populates="stage")
-
-
-class PlayerModel(BaseModel):
+class Player(BaseModel):
     __tablename__ = "players"
     id: Mapped[int] = mapped_column(primary_key=True)
-    vk_user_id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    vk_user_id: Mapped[int] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(String[50])
     game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
 
-    game: Mapped["GameModel"] = relationship(back_populates="players")
-    player_answers_games: Mapped[list["PlayerAnswerGameModel"]] = relationship(
+    game: Mapped["Game"] = relationship(back_populates="players")
+    player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
 
 
-class PlayerAnswerGameModel(BaseModel):
+class PlayerAnswerGame(BaseModel):
     __tablename__ = "player_answers_games"
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -54,12 +56,10 @@ class PlayerAnswerGameModel(BaseModel):
     game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
     answer_id: Mapped[int] = mapped_column(ForeignKey("answers.id"))
 
-    player: Mapped["PlayerModel"] = relationship(
+    player: Mapped[list["Player"]] = relationship(
         back_populates="player_answers_games"
     )
-    game: Mapped["GameModel"] = relationship(
-        back_populates="player_answers_games"
-    )
-    answer: Mapped["AnswerModel"] = relationship(
+    game: Mapped["Game"] = relationship(back_populates="player_answers_games")
+    answer: Mapped["Answer"] = relationship(
         back_populates="player_answers_games"
     )

@@ -55,3 +55,5 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_themes_title'), table_name='themes')
     op.drop_table('themes')
     # ### end Alembic commands ###
+
+
