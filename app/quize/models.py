@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.store.database.sqlalchemy_base import BaseModel
 
 if typing.TYPE_CHECKING:
-    from app.bot.models import PlayerAnswerGameModel, GameModel
+    from app.bot.models import GameModel, PlayerAnswerGameModel
 
 
 class ThemeModel(BaseModel):
@@ -32,9 +32,7 @@ class QuestionModel(BaseModel):
         back_populates="question", cascade="all, delete-orphan"
     )
 
-    games: Mapped[list["GameModel"]] = relationship(
-        back_populates="question"
-    )
+    games: Mapped[list["GameModel"]] = relationship(back_populates="question")
 
 
 class AnswerModel(BaseModel):
