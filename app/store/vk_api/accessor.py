@@ -1,7 +1,6 @@
 import json
 import random
 import typing
-from enum import Enum
 from logging import getLogger
 from urllib.parse import urlencode, urljoin
 
@@ -9,6 +8,13 @@ from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
+from app.store.vk_api.constants import (
+    API_PATH,
+    API_VERSION,
+    VK_METHOD_ACT,
+    VK_METHOD_WAIT,
+    VkMessagesMethods,
+)
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
 )
@@ -18,24 +24,14 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class VkMessagesMethods(Enum):
-    send_event_answer = "messages.sendMessageEventAnswer"
-    edit = "messages.edit"
-    unpin = "messages.unpin"
-    pin = "messages.pin"
-    send = "messages.send"
-
-
 class VkApiAccessor(BaseAccessor):
     def __init__(self, app: "Application", *args, **kwargs):
         super().__init__(app, *args, **kwargs)
 
-        self._API_PATH: str = "https://api.vk.com/method/"
-        self._API_VERSION: str = "5.131"
-        self._VK_METHOD_ACT: str = (
-            "a_check"  # Константа от ВК API. Для получения новых событий из ВКю
-        )
-        self._VK_METHOD_WAIT: int = kwargs.get("wait", 25)
+        self._API_PATH: str = API_PATH
+        self._API_VERSION: str = API_VERSION
+        self._VK_METHOD_ACT: str = VK_METHOD_ACT
+        self._VK_METHOD_WAIT: int = kwargs.get("wait", VK_METHOD_WAIT)
 
         self.session: ClientSession | None = None
         self.key: str | None = None
