@@ -1,7 +1,7 @@
 from enum import Enum
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.dialects.postgresql import ENUM as PGENUM
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.quize.models import Answer, Question
@@ -25,8 +25,8 @@ class Game(BaseModel):
         default=None
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-    game_stage: Mapped[PGENUM] = mapped_column(
-        PGENUM(GameStage), default=GameStage.NOT_START.value, nullable=False
+    game_stage: Mapped[PG_ENUM] = mapped_column(
+        PG_ENUM(GameStage), default=GameStage.NOT_START.value, nullable=False
     )
 
     question: Mapped["Question"] = relationship(back_populates="games")
