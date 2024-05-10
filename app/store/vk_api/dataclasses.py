@@ -26,7 +26,7 @@ class Message:
 
 
 @dataclass
-class Object:
+class VkObject:
     user_id: int | None = None
     peer_id: int | None = None
     event_id: str | None = None
@@ -44,7 +44,7 @@ class Update:
     type: str
     event_id: str
     v: str
-    object: Object
+    object: VkObject
 
     class Meta:
         unknown = EXCLUDE
@@ -58,19 +58,3 @@ class LongPollResponse:
 
     class Meta:
         unknown = EXCLUDE
-
-
-@dataclass
-class SendMessage:
-    peer_id: int
-    text: str | None = ""
-
-
-@dataclass
-class SendMessageWithKeyboard(SendMessage):
-    keyboard: str = None
-
-
-@dataclass
-class SendEditMessage(SendMessage):
-    message_id: int = 0
