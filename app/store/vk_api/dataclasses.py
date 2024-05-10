@@ -26,7 +26,11 @@ class Message:
 
 
 @dataclass
-class Object:
+class VkObject:
+    user_id: int | None = None
+    peer_id: int | None = None
+    event_id: str | None = None
+    payload: str | None = None
     message: Message | None = None
     client_info: ClientInfo | None = None
 
@@ -40,7 +44,7 @@ class Update:
     type: str
     event_id: str
     v: str
-    object: Object
+    object: VkObject
 
     class Meta:
         unknown = EXCLUDE
@@ -54,9 +58,3 @@ class LongPollResponse:
 
     class Meta:
         unknown = EXCLUDE
-
-
-@dataclass
-class SendMessage:
-    peer_id: int
-    text: str | None = None

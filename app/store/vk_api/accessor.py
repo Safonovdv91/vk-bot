@@ -1,14 +1,22 @@
+import json
 import random
 import typing
+from logging import getLogger
 from urllib.parse import urlencode, urljoin
 
 from aiohttp import TCPConnector
 from aiohttp.client import ClientSession
 
 from app.base.base_accessor import BaseAccessor
+from app.store.vk_api.constants import (
+    API_PATH,
+    API_VERSION,
+    VK_METHOD_ACT,
+    VK_METHOD_WAIT,
+    VkMessagesMethods,
+)
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
-    Message,
 )
 from app.store.vk_api.poller import Poller
 
@@ -20,18 +28,17 @@ class VkApiAccessor(BaseAccessor):
     def __init__(self, app: "Application", *args, **kwargs):
         super().__init__(app, *args, **kwargs)
 
-        self._API_PATH: str = "https://api.vk.com/method/"
-        self._API_VERSION: str = "5.131"
-        self._VK_METHOD_ACT: str = (
-            "a_check"  # Константа от ВК API. Для получения новых событий из ВКю
-        )
-        self._VK_METHOD_WAIT: int = kwargs.get("wait", 25)
+        self._API_PATH: str = API_PATH
+        self._API_VERSION: str = API_VERSION
+        self._VK_METHOD_ACT: str = VK_METHOD_ACT
+        self._VK_METHOD_WAIT: int = kwargs.get("wait", VK_METHOD_WAIT)
 
         self.session: ClientSession | None = None
         self.key: str | None = None
         self.server: str | None = None
         self.poller: Poller | None = None
         self.ts: int | None = None
+        self.logger = getLogger("VkApiAccessor")
 
     async def connect(self, app: "Application") -> None:
         self.session = ClientSession(connector=TCPConnector(verify_ssl=False))
@@ -56,6 +63,20 @@ class VkApiAccessor(BaseAccessor):
     def _build_query(self, host: str, method: str, params: dict) -> str:
         params.setdefault("v", self._API_VERSION)
         return f"{urljoin(host, method)}?{urlencode(params)}"
+
+    async def _send_request(
+        self, method: VkMessagesMethods, params: dict
+    ) -> dict | None:
+        """Отправка запроса к API Вконтакте"""
+        params["access_token"] = self.app.config.bot.token
+        try:
+            async with self.session.post(
+                self._build_query(self._API_PATH, method.value, params)
+            ) as response:
+                return await response.json()
+        except Exception as e:
+            self.logger.error("Ошибка при отправке запроcа в VkApi", exc_info=e)
+            return None
 
     async def _get_long_poll_service(self) -> None:
         async with self.session.get(
@@ -93,32 +114,92 @@ class VkApiAccessor(BaseAccessor):
             long_poll_response: LongPollResponse = (
                 LongPollResponse.Schema().load(data)
             )
-
+            messages, events = [], []
+            for update in long_poll_response.updates:
+                if update.type == "message_new":
+                    messages.append(update)
+                elif update.type == "message_event":
+                    events.append(update)
             try:
-                messages = [
-                    update
-                    for update in long_poll_response.updates
-                    if update.type == "message_new"
-                ]
+                await self.app.store.bots_manager.handle_events(events)
                 await self.app.store.bots_manager.handle_updates(messages)
-
-            except Exception:
+            except Exception as e:
                 self.logger.exception(
-                    "Не вышло переслать сообщения в Bot Manager"
+                    "Не вышло переслать сообщения в Bot Manager", exc_info=e
                 )
 
-    async def send_personal_message(self, message: Message) -> None:
-        async with self.session.post(
-            self._build_query(
-                self._API_PATH,
-                "messages.send",
-                params={
-                    "random_id": random.randint(1, 2**32),
-                    "peer_id": message.peer_id,
-                    "message": message.text,
-                    "access_token": self.app.config.bot.token,
-                },
-            )
-        ) as response:
-            data = await response.json()
-            self.logger.info(data)
+    async def send_message(
+        self, peer_id: int, text: str, keyboard: str | None = None
+    ) -> None:
+        """Выслать сообщение
+        :param keyboard: Строкове представление клавиатуры
+        :param text: Текст сообщения
+        :param peer_id: id беседы в которую отправить сообщение
+        :return:
+        """
+        params = {
+            "random_id": random.randint(1, 2**32),
+            "peer_id": peer_id,
+            "message": text,
+        }
+        if keyboard:
+            params["keyboard"] = keyboard
+        await self._send_request(VkMessagesMethods.send, params)
+
+    async def edit_message(
+        self, peer_id: int, conversation_message_id, text: str
+    ) -> None:
+        """Редактирует сообщение в беседе
+        :param text: Новый текст сообщения
+        :param peer_id: id беседы в которую отправить сообщение
+        :param conversation_message_id: id сообщения которое необходимо поменять
+        """
+        params = {
+            "random_id": random.randint(1, 2**32),
+            "peer_id": peer_id,
+            "conversation_message_id": conversation_message_id,
+            "message": text,
+        }
+        await self._send_request(VkMessagesMethods.edit, params)
+
+    async def pin_message(self, peer_id: int, message_id: int) -> None:
+        """Закрепляет сообщение
+        :param peer_id: Идентификатор диалога, в котором нажата кнопка.
+        :param message_id: Идентификатор сообщения которое надо запинить.
+        :return:
+        """
+        params = {
+            "peer_id": peer_id,
+            "conversation_message_id": message_id,
+        }
+        await self._send_request(VkMessagesMethods.pin, params)
+
+    async def unpin_message(self, peer_id: int) -> None:
+        """Открепляет закрепленное сообщение
+        :param peer_id: Идентификатор диалога, в котором нажата кнопка.
+        """
+        params = {
+            "random_id": random.randint(1, 2**32),
+            "peer_id": peer_id,
+        }
+        await self._send_request(VkMessagesMethods.unpin, params)
+
+    async def send_event_answer(
+        self, event_id, user_id, response_text, peer_id: int
+    ) -> None:
+        """Отправляет ответ на событие нажатия callback-кнопки.
+        :param event_id: id события нажатия на кнопку.
+        :param user_id: id пользователя, нажавшего на кнопку.
+        :param peer_id: id диалога, в котором нажата кнопка.
+        :param response_text: Текст ответа, который будет всплывет.
+        """
+        event_data = json.dumps(
+            {"type": "show_snackbar", "text": response_text}
+        )
+        params = {
+            "event_id": event_id,
+            "event_data": event_data,
+            "user_id": user_id,
+            "peer_id": peer_id,
+        }
+        await self._send_request(VkMessagesMethods.send_event_answer, params)

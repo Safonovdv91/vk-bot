@@ -8,7 +8,7 @@ if typing.TYPE_CHECKING:
 class BaseAccessor:
     def __init__(self, app: "Application", *args, **kwargs):
         self.app = app
-        self.logger = getLogger("accessor")
+        self.logger = getLogger("BaseAccessor")
 
         app.on_startup.append(self.connect)
         app.on_cleanup.append(self.disconnect)
