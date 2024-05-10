@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.quize.models import Answer, Question
+from app.quiz.models import Answer, Question
 from app.store.database import BaseModel
 
 
