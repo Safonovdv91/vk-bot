@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.store.database.sqlalchemy_base import BaseModel
 
 if typing.TYPE_CHECKING:
-    from app.bot.models import Game, PlayerAnswerGame
+    from app.game.models import Game, PlayerAnswerGame
 
 
 class Theme(BaseModel):
