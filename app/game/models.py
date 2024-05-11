@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.quiz.models import Answer, Question
-from app.store.database import BaseModel
+from app.store.database.sqlalchemy_base import BaseModel
 
 
 class GameStage(Enum):
