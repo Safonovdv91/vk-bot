@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 
 from aiohttp.web_exceptions import HTTPForbidden
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
@@ -32,15 +32,25 @@ class QuizAccessor(BaseAccessor):
         return await session.scalar(query)
 
     async def get_theme_by_id(self, id_: int) -> Theme | None:
-        self.logger.info("Получаем тему по id")
         async with self.app.database.session() as session:
-            query = select(Theme).where(Theme.id == id_)
-        return await session.scalar(query)
+            theme = await session.execute(
+                select(Theme).where(Theme.id == int(id_))
+            )
+        return theme.scalar_one_or_none()
 
     async def list_themes(self) -> Sequence[Theme]:
         async with self.app.database.session() as session:
             result = await session.execute(select(Theme))
         return result.scalars().all()
+
+    async def delete_theme_by_id(self, id_: int) -> Theme | None:
+        async with self.app.database.session() as session:
+            theme = await self.get_theme_by_id(id_)
+            if theme is None:
+                return None
+            await session.delete(theme)
+            await session.commit()
+        return theme
 
     async def create_question(
         self, title: str, theme_id: int, answers: Iterable[Answer]
@@ -86,11 +96,6 @@ class QuizAccessor(BaseAccessor):
         if question is None:
             return None
         async with self.app.database.session() as session:
-            await session.execute(
-                delete(Answer).where(Answer.question_id == question.id)
-            )
-            await session.execute(
-                delete(Question).where(Question.id == question.id)
-            )
+            await session.delete(question)
             await session.commit()
         return question

@@ -5,6 +5,7 @@ from app.quiz.views import (
     QuestionDeleteByIdView,
     QuestionListView,
     ThemeAddView,
+    ThemeDeleteByIdView,
     ThemeListView,
 )
 
@@ -15,6 +16,7 @@ if typing.TYPE_CHECKING:
 def setup_routes(app: "Application"):
     app.router.add_view("/quiz.themes_add", ThemeAddView)
     app.router.add_view("/quiz.themes_list", ThemeListView)
+    app.router.add_view("/quiz.themes_delete_by_id", ThemeDeleteByIdView)
     app.router.add_view("/quiz.questions_add", QuestionAddView)
     app.router.add_view("/quiz.questions_list", QuestionListView)
     app.router.add_view("/quiz.questions_delete_by_id", QuestionDeleteByIdView)

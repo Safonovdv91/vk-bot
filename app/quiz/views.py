@@ -36,6 +36,24 @@ class ThemeListView(AuthRequiredMixin, View):
         return json_response(data=ThemeListSchema().dump({"themes": themes}))
 
 
+class ThemeDeleteByIdView(AuthRequiredMixin, View):
+    @querystring_schema(ThemeIdSchema)
+    @response_schema(ThemeSchema)
+    async def delete(self):
+        theme_id = self.request.query.get("theme_id")
+        theme = await self.store.quizzes.delete_theme_by_id(theme_id)
+        if theme is None:
+            raise HTTPBadRequest(
+                reason=f"Темы с ID = {theme_id} не существует."
+            )
+        return json_response(
+            data={
+                "status": "deleted",
+                "question": ThemeSchema().dump(theme),
+            }
+        )
+
+
 class QuestionAddView(AuthRequiredMixin, View):
     @request_schema(QuestionSchema)
     @response_schema(QuestionSchema)

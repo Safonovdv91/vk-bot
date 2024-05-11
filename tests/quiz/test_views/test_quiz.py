@@ -38,6 +38,15 @@ class TestThemeListView:
         assert data["status"] == "unauthorized"
 
 
+class TestThemeDeleteByIdView:
+    async def test_unauthorized(self, cli: TestClient) -> None:
+        response = await cli.get("/quiz.themes_delete_by_id")
+        assert response.status == 401
+
+        data = await response.json()
+        assert data["status"] == "unauthorized"
+
+
 class TestThemeAddView:
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/quiz.themes_add")
