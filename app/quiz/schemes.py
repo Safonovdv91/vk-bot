@@ -17,7 +17,12 @@ class QuestionSchema(Schema):
     id = fields.Int(required=False)
     title = fields.Str(required=True)
     theme_id = fields.Int(required=True)
-    answers = fields.Nested(AnswerSchema, many=True, required=True)
+    answers = fields.Nested(
+        AnswerSchema,
+        many=True,
+        required=True,
+        validate=validate.Length(min=2, max=10),
+    )
 
 
 class ThemeListSchema(Schema):
@@ -25,11 +30,11 @@ class ThemeListSchema(Schema):
 
 
 class ThemeIdSchema(Schema):
-    theme_id = fields.Int()
+    theme_id = fields.Int(validate=validate.Range(min=1))
 
 
 class QuestionIdSchema(Schema):
-    question_id = fields.Int()
+    question_id = fields.Int(validate=validate.Range(min=1))
 
 
 class ListQuestionSchema(Schema):

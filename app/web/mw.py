@@ -21,6 +21,7 @@ HTTP_ERROR_CODES = {
     405: "not_implemented",
     409: "conflict",
     500: "internal_server_error",
+    503: "service unavailable",
 }
 
 
