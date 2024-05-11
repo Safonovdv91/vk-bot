@@ -19,13 +19,11 @@ class AdminAccessor(BaseAccessor):
         )
 
     async def get_by_email(self, email: str) -> AdminModel | None:
-        self.logger.info("Ищем по емейлу")
         async with self.app.database.session() as session:
             query = select(AdminModel).where(AdminModel.email == email)
             return await session.scalar(query)
 
     async def upsert_admin(self, email: str, password: str) -> AdminModel:
-        self.logger.info("Создаем админа")
         admin_data = {
             "email": email,
             "password": sha256(password.encode()).hexdigest(),
