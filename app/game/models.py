@@ -24,7 +24,9 @@ class Game(BaseModel):
     pinned_conversation_message_id: Mapped[int | None] = mapped_column(
         default=None
     )
-    responsed_player_id: Mapped[int | None] = mapped_column(server_default=None, default=None)
+    responsed_player_id: Mapped[int | None] = mapped_column(
+        server_default=None, default=None
+    )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
 
     game_stage: Mapped[PG_ENUM] = mapped_column(
