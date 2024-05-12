@@ -26,11 +26,17 @@ class Message:
 
 
 @dataclass
+class Payload:
+    type: str
+    text: str
+
+
+@dataclass
 class VkObject:
     user_id: int | None = None
     peer_id: int | None = None
     event_id: str | None = None
-    payload: str | None = None
+    payload: Payload | None = None
     message: Message | None = None
     client_info: ClientInfo | None = None
 
