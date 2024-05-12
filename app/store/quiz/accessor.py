@@ -96,16 +96,14 @@ class QuizAccessor(BaseAccessor):
         return question
 
     async def get_question_by_id(self, id_: int) -> Question | None:
-
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(Question)
                 .where(Question.id == id_)
                 .options(joinedload(Question.answers))
             )
-            question = result.unique().scalar_one_or_none()
 
-        return question
+        return result.unique().scalar_one_or_none()
 
     async def get_question_by_title(self, title: str) -> Question | None:
         stmt = (
