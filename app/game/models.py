@@ -9,7 +9,7 @@ from app.store.database.sqlalchemy_base import BaseModel
 
 
 class GameStage(Enum):
-    NOT_START = "NOT_START"
+    WAIT_INIT = "NOT_START"
     REGISTRATION_GAMERS = "REGISTRATION_GAMERS"
     WAITING_CALLBACK = "WAITING_CALLBACK"
     WAITING_ANSWER = "WAITING_ANSWER"
@@ -30,7 +30,7 @@ class Game(BaseModel):
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
 
     game_stage: Mapped[PG_ENUM] = mapped_column(
-        PG_ENUM(GameStage), default=GameStage.NOT_START.value, nullable=False
+        PG_ENUM(GameStage), default=GameStage.WAIT_INIT.value, nullable=False
     )
 
     question: Mapped["Question"] = relationship(back_populates="games")
@@ -55,8 +55,7 @@ class Player(BaseModel):
     async def get_games(self, session):
         stmt = select(Game).where(self.game_id == Game.id)
         result = await session.execute(stmt)
-        games = result.scalars().all()
-        return games
+        return result.scalars().all()
 
 
 class PlayerAnswerGame(BaseModel):
