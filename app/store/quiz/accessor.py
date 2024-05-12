@@ -56,18 +56,9 @@ class QuizAccessor(BaseAccessor):
 
         return theme.scalar_one_or_none()
 
-    async def get_themes_list(
-        self, limit: int | None = None, offset: int | None = None
-    ) -> Sequence[Theme]:
+    async def get_themes_list(self) -> Sequence[Theme]:
         async with self.app.database.session() as session:
-            stmt = select(Theme)
-
-            if limit is not None:
-                stmt = stmt.limit(limit)
-            if offset is not None:
-                stmt = stmt.offset(offset)
-
-            result = await session.execute(stmt)
+            result = await session.execute(select(Theme))
 
         return result.scalars().all()
 
@@ -126,34 +117,19 @@ class QuizAccessor(BaseAccessor):
             return await session.scalar(stmt)
 
     async def get_questions_list(
-        self,
-        theme_id: int | None = None,
-        offset: int | None = None,
-        limit: int | None = None,
+        self, theme_id: int | None = None
     ) -> Sequence[Question]:
-        if theme_id is None:
-            raise HTTPBadRequest
+        stmt = select(Question)
 
-        stmt = (
-            select(Question)
-            .where(Question.theme_id == int(theme_id))
-            .options(joinedload(Question.answers))
-        )
+        if theme_id:
+            stmt = stmt.where(Question.theme_id == int(theme_id))
 
-        if limit:
-            stmt = stmt.limit(limit)
-        if offset:
-            stmt = stmt.offset(offset)
+        stmt = stmt.options(joinedload(Question.answers))
 
         async with self.app.database.session() as session:
             questions = await session.scalars(stmt)
 
-        questions = questions.unique().all()
-
-        if len(questions) == 0:
-            raise HTTPNotFound
-
-        return questions
+        return questions.unique().all()
 
     async def delete_question_by_id(self, id_: int) -> Question | None:
         async with self.app.database.session() as session:
