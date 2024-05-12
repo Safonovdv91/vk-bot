@@ -38,7 +38,7 @@ class Question(BaseModel):
 class Answer(BaseModel):
     __tablename__ = "answers"
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String[50], unique=True)
+    title: Mapped[str] = mapped_column(String[50])
     score: Mapped[int] = mapped_column(default=1, nullable=False)
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
 

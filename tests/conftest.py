@@ -29,7 +29,7 @@ def event_loop() -> Iterator[None]:
 def application() -> Application:
     app = setup_app(
         config_path=os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), "config.yaml"
+            os.path.abspath(os.path.dirname(__file__)), "config_tests.yaml"
         )
     )
     app.on_startup.clear()
@@ -105,23 +105,3 @@ async def auth_cli(cli: TestClient, config: Config) -> TestClient:
         },
     )
     return cli
-
-
-# @pytest.fixture
-# async def admin(cli, db_sessionmaker, config: Config) -> AdminModel:
-#     new_admin = AdminModel(
-#         email=config.admin.email,
-#         password=sha256(config.admin.password.encode()).hexdigest(),
-#     )
-#
-#     async with db_sessionmaker.begin() as session:
-#         existed_admin = await session.scalar(
-#             select(AdminModel).where(AdminModel.email == config.admin.email)
-#         )
-#         if existed_admin:
-#             return AdminModel(id=existed_admin.id, email=existed_admin.email)
-#
-#         session.add(new_admin)
-#         await session.commit()
-#
-#     return AdminModel(id=new_admin.id, email=new_admin.email)
