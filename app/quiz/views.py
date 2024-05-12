@@ -3,10 +3,11 @@ from aiohttp_apispec import querystring_schema, request_schema, response_schema
 
 from app.quiz.models import Answer
 from app.quiz.schemes import (
-    ListQuestionSchema,
     QuestionIdSchema,
+    QuestionListSchema,
     QuestionSchema,
     ThemeIdSchema,
+    ThemeListQuerySchema,
     ThemeListSchema,
     ThemeSchema,
 )
@@ -27,9 +28,12 @@ class ThemeAddView(AuthRequiredMixin, View):
 
 
 class ThemeListView(AuthRequiredMixin, View):
+    @querystring_schema(ThemeListQuerySchema)
     @response_schema(ThemeListSchema)
     async def get(self):
-        themes = await self.store.quizzes.get_themes_list()
+        limit = self.request.query.get("limit")
+        offset = self.request.query.get("offset")
+        themes = await self.store.quizzes.get_themes_list(limit, offset)
 
         return json_response(data=ThemeListSchema().dump({"themes": themes}))
 
@@ -39,11 +43,14 @@ class ThemeDeleteByIdView(AuthRequiredMixin, View):
     @response_schema(ThemeSchema)
     async def delete(self):
         theme_id = self.request.query.get("theme_id")
+
         theme = await self.store.quizzes.delete_theme_by_id(theme_id)
+
         if theme is None:
             raise HTTPBadRequest(
                 reason=f"Темы с ID = {theme_id} не существует."
             )
+
         return json_response(
             data={
                 "status": "deleted",
@@ -100,11 +107,15 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
 
 class QuestionListView(AuthRequiredMixin, View):
     @querystring_schema(ThemeIdSchema)
-    @response_schema(ListQuestionSchema)
+    @response_schema(QuestionListSchema)
     async def get(self):
         theme_id = self.request.query.get("theme_id")
-        questions = await self.store.quizzes.get_questions_list(theme_id)
+        limit = self.request.query.get("limit")
+        offset = self.request.query.get("offset")
+        questions = await self.store.quizzes.get_questions_list(
+            theme_id, offset, limit
+        )
 
         return json_response(
-            data=ListQuestionSchema().dump({"questions": questions})
+            data=QuestionListSchema().dump({"questions": questions})
         )

@@ -4,6 +4,7 @@ import sqlalchemy.exc
 from aiohttp.web_exceptions import (
     HTTPBadRequest,
     HTTPConflict,
+    HTTPNotFound,
     HTTPServiceUnavailable,
 )
 from sqlalchemy.future import select
@@ -55,9 +56,18 @@ class QuizAccessor(BaseAccessor):
 
         return theme.scalar_one_or_none()
 
-    async def get_themes_list(self) -> Sequence[Theme]:
+    async def get_themes_list(
+        self, limit: int | None = None, offset: int | None = None
+    ) -> Sequence[Theme]:
         async with self.app.database.session() as session:
-            result = await session.execute(select(Theme))
+            stmt = select(Theme)
+
+            if limit is not None:
+                stmt = stmt.limit(limit)
+            if offset is not None:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
 
         return result.scalars().all()
 
@@ -116,19 +126,34 @@ class QuizAccessor(BaseAccessor):
             return await session.scalar(stmt)
 
     async def get_questions_list(
-        self, theme_id: int | None = None
+        self,
+        theme_id: int | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
     ) -> Sequence[Question]:
-        stmt = select(Question)
+        if theme_id is None:
+            raise HTTPBadRequest
 
-        if theme_id:
-            stmt = stmt.where(Question.theme_id == int(theme_id))
+        stmt = (
+            select(Question)
+            .where(Question.theme_id == int(theme_id))
+            .options(joinedload(Question.answers))
+        )
 
-        stmt = stmt.options(joinedload(Question.answers))
+        if limit:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
 
         async with self.app.database.session() as session:
             questions = await session.scalars(stmt)
 
-        return questions.unique().all()
+        questions = questions.unique().all()
+
+        if len(questions) == 0:
+            raise HTTPNotFound
+
+        return questions
 
     async def delete_question_by_id(self, id_: int) -> Question | None:
         async with self.app.database.session() as session:
