@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, select
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,7 +24,9 @@ class Game(BaseModel):
     pinned_conversation_message_id: Mapped[int | None] = mapped_column(
         default=None
     )
+    responsed_player_id: Mapped[int | None] = mapped_column(server_default=None, default=None)
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
+
     game_stage: Mapped[PG_ENUM] = mapped_column(
         PG_ENUM(GameStage), default=GameStage.NOT_START.value, nullable=False
     )
@@ -47,6 +49,12 @@ class Player(BaseModel):
     player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
+
+    async def get_games(self, session):
+        stmt = select(Game).where(self.game_id == Game.id)
+        result = await session.execute(stmt)
+        games = result.scalars().all()
+        return games
 
 
 class PlayerAnswerGame(BaseModel):
