@@ -25,17 +25,24 @@ class QuestionSchema(Schema):
     )
 
 
+class ThemeListQuerySchema(Schema):
+    limit = fields.Int(required=False, validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=1))
+
+
 class ThemeListSchema(Schema):
     themes = fields.Nested(ThemeSchema, many=True)
 
 
 class ThemeIdSchema(Schema):
     theme_id = fields.Int(validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=1))
+    limit = fields.Int(required=False, validate=validate.Range(min=1))
 
 
 class QuestionIdSchema(Schema):
     question_id = fields.Int(validate=validate.Range(min=1))
 
 
-class ListQuestionSchema(Schema):
+class QuestionListSchema(Schema):
     questions = fields.Nested(QuestionSchema, many=True)
