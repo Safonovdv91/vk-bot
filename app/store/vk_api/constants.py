@@ -7,6 +7,7 @@ class VkMessagesMethods(Enum):
     unpin = "messages.unpin"
     pin = "messages.pin"
     send = "messages.send"
+    get = "users.get"
 
 
 API_PATH = "https://api.vk.com/method/"
