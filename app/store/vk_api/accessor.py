@@ -17,6 +17,7 @@ from app.store.vk_api.constants import (
 )
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
+    VkUser,
 )
 from app.store.vk_api.poller import Poller
 
@@ -69,13 +70,16 @@ class VkApiAccessor(BaseAccessor):
     ) -> dict | None:
         """Отправка запроса к API Вконтакте"""
         params["access_token"] = self.app.config.bot.token
+
         try:
             async with self.session.post(
                 self._build_query(self._API_PATH, method.value, params)
             ) as response:
                 return await response.json()
+
         except Exception as e:
             self.logger.error("Ошибка при отправке запроcа в VkApi", exc_info=e)
+
             return None
 
     async def _get_long_poll_service(self) -> None:
@@ -108,6 +112,7 @@ class VkApiAccessor(BaseAccessor):
             )
         ) as response:
             data = await response.json()
+
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
@@ -115,14 +120,17 @@ class VkApiAccessor(BaseAccessor):
                 LongPollResponse.Schema().load(data)
             )
             messages, events = [], []
+
             for update in long_poll_response.updates:
                 if update.type == "message_new":
                     messages.append(update)
                 elif update.type == "message_event":
                     events.append(update)
+
             try:
                 await self.app.store.bots_manager.handle_events(events)
                 await self.app.store.bots_manager.handle_updates(messages)
+
             except Exception as e:
                 self.logger.exception(
                     "Не вышло переслать сообщения в Bot Manager", exc_info=e
@@ -142,9 +150,26 @@ class VkApiAccessor(BaseAccessor):
             "peer_id": peer_id,
             "message": text,
         }
+
         if keyboard:
             params["keyboard"] = keyboard
+
         await self._send_request(VkMessagesMethods.send, params)
+
+    async def get_vk_user(self, user_id):
+        params = {
+            "user_ids": user_id,
+        }
+        data = await self._send_request(VkMessagesMethods.get, params)
+        response = data.get("response")
+
+        if response:
+            return VkUser(
+                id=response[0].get("id"),
+                first_name=response[0].get("first_name"),
+                last_name=response[0].get("last_name"),
+            )
+        return None
 
     async def edit_message(
         self, peer_id: int, conversation_message_id, text: str
