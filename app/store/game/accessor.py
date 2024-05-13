@@ -1,27 +1,26 @@
 from collections.abc import Sequence
 
-from sqlalchemy import not_, select
+from sqlalchemy import func, not_, select
 
 from app.base.base_accessor import BaseAccessor
 from app.game.models import Game, GameStage, Player
+from app.quiz.models import Question
 
 
 class GameAccessor(BaseAccessor):
     async def add_game(
         self,
         peer_id: int,
-        question_id: int,
-        game_stage: GameStage,
-        pinned_conversation_message_id: int | None = None,
     ) -> Game:
-        game = Game(
-            conversation_id=peer_id,
-            pinned_conversation_message_id=pinned_conversation_message_id,
-            question_id=question_id,
-            game_stage=game_stage,
-        )
-
         async with self.app.database.session() as session:
+            stmt = select(Question).order_by(func.random()).limit(1)
+            result = await session.execute(stmt)
+            question = result.scalar_one_or_none()
+            game = Game(
+                conversation_id=peer_id,
+                question_id=question.id,
+                game_stage=GameStage.REGISTRATION_GAMERS,
+            )
             session.add(game)
             await session.commit()
 
