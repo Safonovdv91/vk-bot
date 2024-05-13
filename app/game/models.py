@@ -11,7 +11,7 @@ from app.store.database.sqlalchemy_base import BaseModel
 class GameStage(Enum):
     WAIT_INIT = "NOT_START"
     REGISTRATION_GAMERS = "REGISTRATION_GAMERS"
-    WAITING_CALLBACK = "WAITING_CALLBACK"
+    WAITING_READY_TO_ANSWER = "WAITING_CALLBACK"
     WAITING_ANSWER = "WAITING_ANSWER"
     FINISHED = "FINISHED"
     CANCELED = "CANCELED"
@@ -28,7 +28,6 @@ class Game(BaseModel):
         server_default=None, default=None
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-
     game_stage: Mapped[PG_ENUM] = mapped_column(
         PG_ENUM(GameStage), default=GameStage.WAIT_INIT.value, nullable=False
     )
