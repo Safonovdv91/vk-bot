@@ -10,15 +10,17 @@ if typing.TYPE_CHECKING:
 class Store:
     def __init__(self, app: "Application"):
         from app.store.admin.accessor import AdminAccessor
-        from app.store.game.manager import BotManager
+        from app.store.game.manager import BotManager, GameManager
         from app.store.quiz.accessor import QuizAccessor
         from app.store.vk_api.accessor import VkApiAccessor
 
         self.quizzes = QuizAccessor(app)
         self.admins = AdminAccessor(app)
         self.vk_api = VkApiAccessor(app)
+
         self.bots_manager = BotManager(app)
-        self.game_manager = GameAccessor(app)
+        self.game_manager = GameManager(app)
+        self.game_accessor = GameAccessor(app)
 
 
 def setup_store(app: "Application"):
