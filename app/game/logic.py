@@ -22,8 +22,8 @@ class Game:
         self.time_to_answer = 15  # время данное на ответ
         self.answers: dict = {"50": 15, "100": 75}
         self.time_to_registration = 15
-        self.min_count_gamers: int = 1 # ТЕстовые данные
-        self.max_count_gamers: int = 1 # Тестовые данные
+        self.min_count_gamers: int = 1  # ТЕстовые данные
+        self.max_count_gamers: int = 1  # Тестовые данные
 
         self.conversation_id: int = conversation_id
         self.game_stage: GameStage = GameStage.WAIT_INIT
