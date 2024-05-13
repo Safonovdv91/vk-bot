@@ -8,7 +8,6 @@ from aiohttp_session import setup as session_setup
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from app.admin.models import AdminModel
-from app.game.logic import GameLogic
 from app.store import Store
 from app.store.database.database import Database
 from app.store.store import setup_store
@@ -22,7 +21,6 @@ class Application(AiohttpApplication):
     config: Config | None = None
     store: Store | None = None
     database: Database | None = None
-    game_logic: GameLogic | None = None
 
 
 class Request(AiohttpRequest):
