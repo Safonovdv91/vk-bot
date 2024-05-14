@@ -1,8 +1,8 @@
 from collections.abc import Sequence
-from typing import Sequence
 
 import sqlalchemy
-from sqlalchemy import func, not_, select, update
+from asyncpg import UniqueViolationError
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 
@@ -20,6 +20,7 @@ class GameAccessor(BaseAccessor):
             stmt = select(Question).order_by(func.random()).limit(1)
             result = await session.execute(stmt)
             question = result.scalar_one_or_none()
+
             if question is None:
                 # выбросить кастомное исключение
                 return None
@@ -46,7 +47,6 @@ class GameAccessor(BaseAccessor):
                 session.add(player)
                 await session.commit()
 
-                await session.commit()
             except sqlalchemy.exc.IntegrityError as exc:
                 await session.rollback()
                 self.logger.exception(
@@ -57,6 +57,11 @@ class GameAccessor(BaseAccessor):
                 await session.rollback()
                 self.logger.exception(
                     exc_info=exc, msg="Не удалось зарегистрировать игрока"
+                )
+            except UniqueViolationError as exc:
+                await session.rollback()
+                self.logger.exception(
+                    exc_info=exc, msg="Пользователь уже зарегестриован"
                 )
 
     async def delete_player(self, game_id: int, vk_user_id: int):
@@ -109,7 +114,6 @@ class GameAccessor(BaseAccessor):
         :return:
         """
         async with self.app.database.session() as session:
-
             stmt = (
                 update(Game)
                 .where(Game.id == game_id)
@@ -124,8 +128,10 @@ class GameAccessor(BaseAccessor):
             result = await session.execute(
                 select(Game)
                 .where(Game.conversation_id == peer_id)
-                .options(joinedload(Game.question))
-                .options(joinedload(Game.players))
+                .options(
+                    joinedload(Game.question).joinedload(Question.answers),
+                    joinedload(Game.players),
+                )
             )
         return result.unique().scalar_one_or_none()
 
@@ -138,3 +144,17 @@ class GameAccessor(BaseAccessor):
             )
 
         return result.unique().scalar_one_or_none()
+
+    async def player_add_answer_from_game(self, answer_id, player_id, game_id):
+        """Функция добавления правильного ответа игрока для подсчета очков
+        :param answer_id: id ответа на который ответил
+        :param player_id: id игрока на который ответил
+        :param game_id: id игры на который ответил игрок
+        :return:
+        """
+        async with self.app.database.session() as session:
+            player_answer_game = PlayerAnswerGame(
+                answer_id=answer_id, player_id=player_id, game_id=game_id
+            )
+            session.add(player_answer_game)
+            await session.commit()
