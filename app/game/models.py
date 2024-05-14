@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import ForeignKey, String, select, UniqueConstraint
+from sqlalchemy import ForeignKey, String, UniqueConstraint, select
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,7 +19,7 @@ class GameStage(Enum):
 
 class Game(BaseModel):
     __tablename__ = "games"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversation_id: Mapped[int | None] = mapped_column(
         default=None, unique=True
     )
@@ -44,14 +44,16 @@ class Player(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     vk_user_id: Mapped[int] = mapped_column(nullable=False, primary_key=True)
     name: Mapped[str] = mapped_column(String[50])
-    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), primary_key=True)
+    game_id: Mapped[int] = mapped_column(
+        ForeignKey("games.id"), primary_key=True
+    )
 
     game: Mapped["Game"] = relationship(back_populates="players")
     player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
     __table_args__ = (
-        UniqueConstraint('vk_user_id', 'game_id', name='vk_user_id_game_id'),
+        UniqueConstraint("vk_user_id", "game_id", name="vk_user_id_game_id"),
     )
 
     async def get_games(self, session):
