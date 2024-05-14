@@ -15,15 +15,15 @@ async def registration_timer(timeout):
 
 class GameLogic:
     def __init__(self, app: "Application", conversation_id):
+
         self.app = app
         self.logger = getLogger("BotManager")
-
         self.players_list = []  # Список игроков
         self.time_to_answer = 15  # время данное на ответ
         self.answers: dict = {"50": 15, "100": 75}
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
-        self.max_count_gamers: int = 3  # Тестовые данные
+        self.max_count_gamers: int = 1  # Тестовые данные
 
         self.conversation_id: int = conversation_id
         self.game_stage: GameStage = GameStage.WAIT_INIT
@@ -197,6 +197,9 @@ class GameLogic:
 
     async def waiting_ready_to_answer(self, event_id: int, user_id: int):
         """Функция состояния нажатия на кнопку "Готов ответить"
+        1) Меняет состояние игры
+        2) Запоминает id пользователя который будет отвечать
+        3)
 
         :param event_id: id события на которое надо будет послать ответ
         :param user_id: user_id на который будет послан ответ
@@ -214,13 +217,16 @@ class GameLogic:
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.WAITING_ANSWER
             )
-
+            await self.app.store.game_accessor.change_answer_player(
+                game_id=self.game_id,
+                vk_user_id=user_id
+            )
             await self.app.store.vk_api.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
                 response_text=f"Поздравляю, ты отвечаешь на вопрос,"
-                f" у тебя {self.time_to_answer} секунд!",
+                f"У тебя {self.time_to_answer} секунд!",
             )
 
             keyboard_start_game = VkKeyboard(one_time=True)
@@ -247,16 +253,28 @@ class GameLogic:
             )
 
     async def waiting_answer(self, user_id, answer):
+        """ Функция принимает ответ игрока во время ожидания ответа
+        1) Проверяет верность ответа
+        2) Проверяет есть ли ещё вопросы
+
+        :param user_id: id юзера вк от которого ждем ответ
+        :param answer: Приходящее сообщение
+        :return:
+        """
         if (
             self.game_stage == GameStage.WAITING_ANSWER
             and user_id == self.answered_player
         ):
+            await self.app.store.game_accessor.change_answer_player(game_id=self.game_id, vk_user_id=None)
             if answer in self.answers:
+
                 await self.app.store.vk_api.send_message(
                     peer_id=self.conversation_id,
-                    text=f"Игрок: {self.answered_player} ответил прпавильно"
+                    text=f"Игрок: {self.answered_player} ответил правильно"
                     f" и получил {self.answers.pop(answer)} очков!",
                 )
+
+
                 if len(self.answers.keys()) == 0:
                     self.game_stage = GameStage.WAIT_INIT
                     await self.app.store.game_accessor.change_state(
@@ -265,7 +283,6 @@ class GameLogic:
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id, text="Игра окончена!"
                     )
-                    # Функция окончания игры( подсчета очков, красивого вывода
                 else:
                     await self._send_question()
                     self.game_stage = GameStage.WAITING_READY_TO_ANSWER

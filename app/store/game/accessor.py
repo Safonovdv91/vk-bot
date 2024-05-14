@@ -103,11 +103,21 @@ class GameAccessor(BaseAccessor):
 
     async def change_answer_player(self, game_id: int, vk_user_id: int):
         """Закрепить за игроком право на ответ
+        указываем vk_id пользоывателя в игре
         :param game_id: id игры в которой принимается ответ
         :param vk_user_id: vk id пользователя от которого ждем ответ
         :return:
         """
-        pass
+        async with self.app.database.session() as session:
+
+            stmt = (
+                update(Game)
+                .where(Game.id == game_id)
+                .values(responsed_player_id=vk_user_id)
+                .execution_options(synchronize_session="fetch")
+            )
+            await session.execute(stmt)
+            await session.commit()
 
     async def get_game_by_peer_id(self, peer_id: int) -> Sequence[Game] | None:
         async with self.app.database.session() as session:
