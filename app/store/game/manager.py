@@ -4,6 +4,7 @@ from logging import getLogger
 from app.game.logic import Game
 from app.game.states import GameStage
 from app.store.vk_api.dataclasses import (
+    MessageUpdate,
     Update,
 )
 
@@ -60,7 +61,7 @@ class BotManager:
                     event_id=event_id, user_id=user_id
                 )
 
-    async def handle_updates(self, updates: list[Update]):
+    async def handle_updates(self, updates: list[MessageUpdate]):
         """Обработка пришедших сообщений"""
         self.logger.info("Получены события \n %s", updates)
 

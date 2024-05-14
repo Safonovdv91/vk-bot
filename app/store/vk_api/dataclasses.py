@@ -67,6 +67,27 @@ class LongPollResponse:
 
 
 @dataclass
+class VkMessage:
+    conversation_message_id: int
+    date: int
+    from_id: int
+    peer_id: int
+    text: str
+
+
+@dataclass
+class MessageObject:
+    message: VkMessage
+
+
+@dataclass
+class MessageUpdate:
+    event_id: str
+    group_id: int
+    object: MessageObject
+
+
+@dataclass
 class VkUser:
     id: int
     first_name: str

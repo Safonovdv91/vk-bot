@@ -17,6 +17,9 @@ from app.store.vk_api.constants import (
 )
 from app.store.vk_api.dataclasses import (
     LongPollResponse,
+    MessageObject,
+    MessageUpdate,
+    VkMessage,
     VkUser,
 )
 from app.store.vk_api.poller import Poller
@@ -123,7 +126,20 @@ class VkApiAccessor(BaseAccessor):
 
             for update in long_poll_response.updates:
                 if update.type == "message_new":
-                    messages.append(update)
+                    new_msg = MessageUpdate(
+                        event_id=update.event_id,
+                        group_id=update.group_id,
+                        object=MessageObject(
+                            message=VkMessage(
+                                conversation_message_id=update.object.message.conversation_message_id,
+                                date=update.object.message.date,
+                                from_id=update.object.message.from_id,
+                                peer_id=update.object.message.peer_id,
+                                text=update.object.message.text,
+                            ),
+                        ),
+                    )
+                    messages.append(new_msg)
                 elif update.type == "message_event":
                     events.append(update)
 
