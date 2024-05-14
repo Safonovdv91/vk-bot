@@ -158,3 +158,15 @@ class GameAccessor(BaseAccessor):
             )
             session.add(player_answer_game)
             await session.commit()
+
+    async def get_all_games(self):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(Game)
+                .where(Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED]))
+                .options(
+                    joinedload(Game.question).joinedload(Question.answers),
+                    joinedload(Game.players),
+                )
+            )
+        return result.unique().scalars().all()
