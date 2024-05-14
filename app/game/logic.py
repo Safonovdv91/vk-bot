@@ -2,7 +2,7 @@ import asyncio
 import typing
 from logging import getLogger
 
-from app.game.states import GameStage
+from app.game.models import Game, GameStage
 from app.store.vk_api.utils import VkButton, VkKeyboard
 
 if typing.TYPE_CHECKING:
@@ -13,7 +13,7 @@ async def registration_timer(timeout):
     await asyncio.sleep(timeout)
 
 
-class Game:
+class GameLogic:
     def __init__(self, app: "Application", conversation_id):
         self.app = app
         self.logger = getLogger("BotManager")
@@ -23,15 +23,19 @@ class Game:
         self.answers: dict = {"50": 15, "100": 75}
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
-        self.max_count_gamers: int = 1  # Тестовые данные
+        self.max_count_gamers: int = 3  # Тестовые данные
 
         self.conversation_id: int = conversation_id
         self.game_stage: GameStage = GameStage.WAIT_INIT
 
         self.answered_player = None
         self.pinned_conversation_message_id: int | None = None
-        self.question: str | None = "Сколько деняк в кошельке?"
+        self.question: str | None = None
         self.players: list[str] | None = []
+
+        # Из БД
+        self.game_id: int
+        self.question_id: int
 
     async def get_state(self):
         await self.app.store.vk_api.send_message(
@@ -65,6 +69,13 @@ class Game:
 
     async def start_game(self):
         if self.game_stage == GameStage.WAIT_INIT:
+            new_game: Game = await self.app.store.game_accessor.add_game(
+                self.conversation_id
+            )
+            self.logger.info(new_game)
+            self.question = new_game.question.title
+            self.game_id = new_game.id
+
             self.logger.info("START_GAME")
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
             btn_reg_on = VkButton(
@@ -87,7 +98,9 @@ class Game:
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
             self.game_stage = GameStage.REGISTRATION_GAMERS
-
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
+            )
             # timer = self._start_registration_timer(self.time_to_registration)
         else:
             await self.app.store.vk_api.send_message(
@@ -118,9 +131,18 @@ class Game:
 
             if user_id not in self.players:
                 self.players.append(user_id)
+                await self.app.store.game_accessor.add_player(
+                    game_id=self.game_id,
+                    vk_user_id=user_id,
+                    name="Тестовый юзер",
+                )
 
                 if len(self.players) >= self.max_count_gamers:
                     self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                    await self.app.store.game_accessor.change_state(
+                        game_id=self.game_id,
+                        new_state=GameStage.WAITING_READY_TO_ANSWER,
+                    )
 
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id,
@@ -147,6 +169,10 @@ class Game:
         if self.game_stage == GameStage.REGISTRATION_GAMERS:
             if user_id in self.players:
                 self.players.remove(user_id)
+                await self.app.store.game_accessor.delete_player(
+                    game_id=self.game_id, vk_user_id=user_id
+                )
+
                 await self.app.store.vk_api.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
@@ -169,7 +195,14 @@ class Game:
                 response_text="Набор игроков уже закончился",
             )
 
-    async def waiting_ready_to_answer(self, event_id, user_id):
+    async def waiting_ready_to_answer(self, event_id: int, user_id: int):
+        """Функция состояния нажатия на кнопку "Готов ответить"
+
+        :param event_id: id события на которое надо будет послать ответ
+        :param user_id: user_id на который будет послан ответ
+        :return:
+        """
+
         if (
             self.game_stage == GameStage.WAITING_READY_TO_ANSWER
             and user_id in self.players
@@ -178,6 +211,10 @@ class Game:
             self.game_stage = GameStage.WAITING_ANSWER
             self.answered_player = user_id
 
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id, new_state=GameStage.WAITING_ANSWER
+            )
+
             await self.app.store.vk_api.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
@@ -185,6 +222,7 @@ class Game:
                 response_text=f"Поздравляю, ты отвечаешь на вопрос,"
                 f" у тебя {self.time_to_answer} секунд!",
             )
+
             keyboard_start_game = VkKeyboard(one_time=True)
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
@@ -221,6 +259,9 @@ class Game:
                 )
                 if len(self.answers.keys()) == 0:
                     self.game_stage = GameStage.WAIT_INIT
+                    await self.app.store.game_accessor.change_state(
+                        game_id=self.game_id, new_state=GameStage.WAIT_INIT
+                    )
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id, text="Игра окончена!"
                     )
@@ -228,8 +269,17 @@ class Game:
                 else:
                     await self._send_question()
                     self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+
+                    await self.app.store.game_accessor.change_state(
+                        game_id=self.game_id,
+                        new_state=GameStage.WAITING_READY_TO_ANSWER,
+                    )
             else:
                 self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                await self.app.store.game_accessor.change_state(
+                    game_id=self.game_id,
+                    new_state=GameStage.WAITING_READY_TO_ANSWER,
+                )
                 await self._send_question()
 
     def __repr__(self):

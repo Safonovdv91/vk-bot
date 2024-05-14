@@ -9,7 +9,7 @@ from app.store.database.sqlalchemy_base import BaseModel
 
 
 class GameStage(Enum):
-    WAIT_INIT = "NOT_START"
+    WAIT_INIT = "WAIT_INIT"
     REGISTRATION_GAMERS = "REGISTRATION_GAMERS"
     WAITING_READY_TO_ANSWER = "WAITING_CALLBACK"
     WAITING_ANSWER = "WAITING_ANSWER"
@@ -20,7 +20,9 @@ class GameStage(Enum):
 class Game(BaseModel):
     __tablename__ = "games"
     id: Mapped[int] = mapped_column(primary_key=True)
-    conversation_id: Mapped[int | None] = mapped_column(default=None)
+    conversation_id: Mapped[int | None] = mapped_column(
+        default=None, unique=True
+    )
     pinned_conversation_message_id: Mapped[int | None] = mapped_column(
         default=None
     )
@@ -28,9 +30,7 @@ class Game(BaseModel):
         server_default=None, default=None
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-    game_stage: Mapped[PG_ENUM] = mapped_column(
-        PG_ENUM(GameStage), default=GameStage.WAIT_INIT.value, nullable=False
-    )
+    state: Mapped[PG_ENUM] = mapped_column(PG_ENUM(GameStage), nullable=False)
 
     question: Mapped["Question"] = relationship(back_populates="games")
     players: Mapped[list["Player"]] = relationship(back_populates="game")

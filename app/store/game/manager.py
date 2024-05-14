@@ -1,7 +1,7 @@
 import typing
 from logging import getLogger
 
-from app.game.logic import Game
+from app.game.logic import Game, GameLogic
 from app.game.states import GameStage
 from app.store.vk_api.dataclasses import (
     EventUpdate,
@@ -20,7 +20,7 @@ class GameManager:
         self.state = GameStage.WAIT_INIT
         self.players_list = []
 
-    async def handle_games(self, game: Game, message: str, user_id: int):
+    async def handle_games(self, game: GameLogic, message: str, user_id: int):
         self.logger.info("Обрабатывается игра %s", game)
         if message == "stage":
             await game.get_state()
@@ -80,8 +80,8 @@ class BotManager:
                 )
             else:
                 self.logger.info("Игры нет в играх")
-                new_game = Game(
-                    app=self.app, conversation_id=update.object.message.peer_id
+                new_game = GameLogic(
+                    app=self.app, conversation_id=conversation_id
                 )
                 self.games[conversation_id] = new_game
                 self.logger.info("Создаем новую модель игры \n %s", new_game)
