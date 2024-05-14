@@ -81,10 +81,32 @@ class MessageObject:
 
 
 @dataclass
+class EventPayload:
+    text: str
+    type: str
+
+
+@dataclass
+class EventObject:
+    event_id: str
+    payload: EventPayload
+    peer_id: int
+    user_id: int
+
+
+@dataclass
 class MessageUpdate:
     event_id: str
     group_id: int
     object: MessageObject
+
+
+@dataclass
+class EventUpdate:
+    event_id: str
+    group_id: int
+    type: str
+    object: EventObject
 
 
 @dataclass

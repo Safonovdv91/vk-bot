@@ -16,6 +16,9 @@ from app.store.vk_api.constants import (
     VkMessagesMethods,
 )
 from app.store.vk_api.dataclasses import (
+    EventObject,
+    EventPayload,
+    EventUpdate,
     LongPollResponse,
     MessageObject,
     MessageUpdate,
@@ -141,7 +144,21 @@ class VkApiAccessor(BaseAccessor):
                     )
                     messages.append(new_msg)
                 elif update.type == "message_event":
-                    events.append(update)
+                    new_event = EventUpdate(
+                        event_id=update.event_id,
+                        group_id=update.group_id,
+                        type=update.type,
+                        object=EventObject(
+                            event_id=update.object.event_id,
+                            peer_id=update.object.peer_id,
+                            user_id=update.object.user_id,
+                            payload=EventPayload(
+                                text=update.object.payload.text,
+                                type=update.object.payload.type,
+                            ),
+                        ),
+                    )
+                    events.append(new_event)
 
             try:
                 await self.app.store.bots_manager.handle_events(events)

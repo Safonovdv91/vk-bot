@@ -4,8 +4,8 @@ from logging import getLogger
 from app.game.logic import Game
 from app.game.states import GameStage
 from app.store.vk_api.dataclasses import (
+    EventUpdate,
     MessageUpdate,
-    Update,
 )
 
 if typing.TYPE_CHECKING:
@@ -39,7 +39,7 @@ class BotManager:
         self.logger = getLogger("BotManager")
         self.games = {}
 
-    async def handle_events(self, events: list[Update]):
+    async def handle_events(self, events: list[EventUpdate]):
         """Обработка callback событий"""
         self.logger.info("Получены события \n %s", events)
 
