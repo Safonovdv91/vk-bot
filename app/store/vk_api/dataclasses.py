@@ -114,3 +114,6 @@ class VkUser:
     id: int
     first_name: str
     last_name: str
+
+    def __repr__(self):
+        return f"{self.first_name} {self.last_name}"

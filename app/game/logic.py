@@ -3,6 +3,7 @@ import typing
 from logging import getLogger
 
 from app.game.models import Game, GameStage
+from app.store.vk_api.dataclasses import VkUser
 from app.store.vk_api.utils import VkButton, VkKeyboard
 
 if typing.TYPE_CHECKING:
@@ -15,12 +16,15 @@ async def registration_timer(timeout):
 
 class GameLogic:
     def __init__(self, app: "Application", conversation_id):
-
+        self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
+        self.game_accessor = self.app.store.game_accessor
+        self.vk_accessor = self.app.store.vk_api
+
         self.players_list = []  # Список игроков
         self.time_to_answer = 15  # время данное на ответ
-        self.answers: dict = {"50": 15, "100": 75}
+        self.answers: dict = {}
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
         self.max_count_gamers: int = 1  # Тестовые данные
@@ -28,17 +32,38 @@ class GameLogic:
         self.conversation_id: int = conversation_id
         self.game_stage: GameStage = GameStage.WAIT_INIT
 
-        self.answered_player = None
+        self.answered_player: VkUser | None = None
+        self.answered_player_id: int | None = None
+
         self.pinned_conversation_message_id: int | None = None
         self.question: str | None = None
-        self.players: list[str] | None = []
+        self.players: list[int] | None = []
 
-        # Из БД
         self.game_id: int
         self.question_id: int
 
+    async def _resend_question(self):
+        """Функция повторной отправки вопроса игры
+
+        :return:
+        """
+        keyboard_start_game = VkKeyboard(one_time=False)
+        btn_ready_to_answer = VkButton(
+            label="Знаю ответ!",
+            type_btn="callback",
+            payload={"type": "show_snackbar", "text": "/give_answer"},
+            color="primary",
+        ).get()
+
+        await keyboard_start_game.add_line([btn_ready_to_answer])
+        await self.vk_accessor.send_message(
+            peer_id=self.conversation_id,
+            text=self.question,
+            keyboard=await keyboard_start_game.get_keyboard(),
+        )
+
     async def get_state(self):
-        await self.app.store.vk_api.send_message(
+        await self.vk_accessor.send_message(
             peer_id=self.conversation_id,
             text=f"Cейчас идет {self.game_stage}",
         )
@@ -53,14 +78,15 @@ class GameLogic:
                 < self.min_count_gamers
             ):
                 self.game_stage = GameStage.WAITING_READY_TO_ANSWER
-                await self.app.store.vk_api.send_message(
+                await self.vk_accessor.send_message(
                     peer_id=self.conversation_id,
                     text=f"Время на регистрацию закончилось,"
                     f" участвует {len(self.players)} игроков",
                 )
+
             else:
                 self.game_stage = GameStage.WAIT_INIT
-                await self.app.store.vk_api.send_message(
+                await self.vk_accessor.send_message(
                     peer_id=self.conversation_id,
                     text=f"Время на регистрацию закончилось,"
                     f" не набралось достаточное количество игроков"
@@ -69,12 +95,15 @@ class GameLogic:
 
     async def start_game(self):
         if self.game_stage == GameStage.WAIT_INIT:
-            new_game: Game = await self.app.store.game_accessor.add_game(
+            new_game: Game = await self.game_accessor.add_game(
                 self.conversation_id
             )
             self.logger.info(new_game)
             self.question = new_game.question.title
             self.game_id = new_game.id
+
+            for answer in new_game.question.answers:
+                self.answers[answer.title] = answer
 
             self.logger.info("START_GAME")
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
@@ -92,38 +121,21 @@ class GameLogic:
             ).get()
             await keyboard_start_game.add_line([btn_reg_on, btn_reg_off])
 
-            await self.app.store.vk_api.send_message(
+            await self.vk_accessor.send_message(
                 peer_id=self.conversation_id,
                 text="Началась регистрация на игру!",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
             self.game_stage = GameStage.REGISTRATION_GAMERS
-            await self.app.store.game_accessor.change_state(
+            await self.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
             )
             # timer = self._start_registration_timer(self.time_to_registration)
         else:
-            await self.app.store.vk_api.send_message(
+            await self.vk_accessor.send_message(
                 peer_id=self.conversation_id,
                 text="Невозможно сейчас начать игру, т.к. она уже идет",
             )
-
-    async def _send_question(self):
-        keyboard_start_game = VkKeyboard(one_time=False)
-        btn_ready_to_answer = VkButton(
-            label="Знаю ответ!",
-            type_btn="callback",
-            payload={"type": "show_snackbar", "text": "/give_answer"},
-            color="primary",
-        ).get()
-
-        await keyboard_start_game.add_line([btn_ready_to_answer])
-
-        await self.app.store.vk_api.send_message(
-            peer_id=self.conversation_id,
-            text=self.question,
-            keyboard=await keyboard_start_game.get_keyboard(),
-        )
 
     async def register_player(self, event_id, user_id):
         if self.game_stage == GameStage.REGISTRATION_GAMERS:
@@ -131,34 +143,36 @@ class GameLogic:
 
             if user_id not in self.players:
                 self.players.append(user_id)
-                await self.app.store.game_accessor.add_player(
+                vk_user = await self.vk_accessor.get_vk_user(user_id)
+                await self.game_accessor.add_player(
                     game_id=self.game_id,
                     vk_user_id=user_id,
-                    name="Тестовый юзер",
+                    name=f"{vk_user.last_name} {vk_user.first_name}",
                 )
 
                 if len(self.players) >= self.max_count_gamers:
                     self.game_stage = GameStage.WAITING_READY_TO_ANSWER
-                    await self.app.store.game_accessor.change_state(
+                    await self.game_accessor.change_state(
                         game_id=self.game_id,
                         new_state=GameStage.WAITING_READY_TO_ANSWER,
                     )
 
-                    await self.app.store.vk_api.send_message(
+                    await self.vk_accessor.send_message(
                         peer_id=self.conversation_id,
                         text=f"Набралось достаточное количество игроков"
                         f" {len(self.players)}/{self.min_count_gamers}",
                     )
-                    await self._send_question()
+                    await self._resend_question()
 
-                await self.app.store.vk_api.send_event_answer(
+                await self.vk_accessor.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
                     response_text="Успешная регистрация!",
                 )
+
             else:
-                await self.app.store.vk_api.send_event_answer(
+                await self.vk_accessor.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
@@ -173,14 +187,15 @@ class GameLogic:
                     game_id=self.game_id, vk_user_id=user_id
                 )
 
-                await self.app.store.vk_api.send_event_answer(
+                await self.vk_accessor.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
                     response_text="Вы отменили регистрацию на игру!",
                 )
+
             else:
-                await self.app.store.vk_api.send_event_answer(
+                await self.vk_accessor.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
@@ -188,7 +203,7 @@ class GameLogic:
                 )
 
         else:
-            await self.app.store.vk_api.send_event_answer(
+            await self.vk_accessor.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
@@ -205,23 +220,21 @@ class GameLogic:
         :param user_id: user_id на который будет послан ответ
         :return:
         """
-
         if (
             self.game_stage == GameStage.WAITING_READY_TO_ANSWER
             and user_id in self.players
         ):
-            self.logger.info("Waiting ready to answer")
             self.game_stage = GameStage.WAITING_ANSWER
-            self.answered_player = user_id
+            self.answered_player_id = user_id
+            self.answered_player = await self.vk_accessor.get_vk_user(user_id)
 
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.WAITING_ANSWER
             )
-            await self.app.store.game_accessor.change_answer_player(
-                game_id=self.game_id,
-                vk_user_id=user_id
+            await self.game_accessor.change_answer_player(
+                game_id=self.game_id, vk_user_id=user_id
             )
-            await self.app.store.vk_api.send_event_answer(
+            await self.vk_accessor.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
@@ -230,14 +243,16 @@ class GameLogic:
             )
 
             keyboard_start_game = VkKeyboard(one_time=True)
-            await self.app.store.vk_api.send_message(
+            vk_user = await self.vk_accessor.get_vk_user(user_id)
+            await self.vk_accessor.send_message(
                 peer_id=self.conversation_id,
-                text=f"На вопрос отвечает игрок {self.answered_player}",
+                text=f"На вопрос отвечает"
+                f" {vk_user.last_name} {vk_user.first_name}!",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
 
         elif self.game_stage == GameStage.WAITING_ANSWER:
-            await self.app.store.vk_api.send_event_answer(
+            await self.vk_accessor.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
@@ -245,7 +260,7 @@ class GameLogic:
             )
 
         else:
-            await self.app.store.vk_api.send_event_answer(
+            await self.vk_accessor.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
@@ -253,7 +268,7 @@ class GameLogic:
             )
 
     async def waiting_answer(self, user_id, answer):
-        """ Функция принимает ответ игрока во время ожидания ответа
+        """Функция принимает ответ игрока во время ожидания ответа
         1) Проверяет верность ответа
         2) Проверяет есть ли ещё вопросы
 
@@ -263,41 +278,52 @@ class GameLogic:
         """
         if (
             self.game_stage == GameStage.WAITING_ANSWER
-            and user_id == self.answered_player
+            and user_id == self.answered_player_id
         ):
-            await self.app.store.game_accessor.change_answer_player(game_id=self.game_id, vk_user_id=None)
-            if answer in self.answers:
+            await self.game_accessor.change_answer_player(
+                game_id=self.game_id, vk_user_id=None
+            )
 
-                await self.app.store.vk_api.send_message(
-                    peer_id=self.conversation_id,
-                    text=f"Игрок: {self.answered_player} ответил правильно"
-                    f" и получил {self.answers.pop(answer)} очков!",
+            if answer in self.answers:
+                await self.game_accessor.player_add_answer_from_game(
+                    answer_id=self.answers[answer].id,
+                    player_id=30,
+                    game_id=self.game_id,
                 )
 
+                await self.vk_accessor.send_message(
+                    peer_id=self.conversation_id,
+                    text=f"Игрок: {self.answered_player} ответил правильно"
+                    f" и получил {self.answers.pop(answer).score} очков!",
+                )
 
                 if len(self.answers.keys()) == 0:
-                    self.game_stage = GameStage.WAIT_INIT
-                    await self.app.store.game_accessor.change_state(
-                        game_id=self.game_id, new_state=GameStage.WAIT_INIT
+                    self.game_stage = GameStage.FINISHED
+                    await self.game_accessor.change_state(
+                        game_id=self.game_id, new_state=GameStage.FINISHED
                     )
-                    await self.app.store.vk_api.send_message(
-                        peer_id=self.conversation_id, text="Игра окончена!"
-                    )
-                else:
-                    await self._send_question()
-                    self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                    await self.end_game()
 
-                    await self.app.store.game_accessor.change_state(
+                else:
+                    await self._resend_question()
+                    self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                    await self.game_accessor.change_state(
                         game_id=self.game_id,
                         new_state=GameStage.WAITING_READY_TO_ANSWER,
                     )
+
             else:
                 self.game_stage = GameStage.WAITING_READY_TO_ANSWER
-                await self.app.store.game_accessor.change_state(
+                await self.game_accessor.change_state(
                     game_id=self.game_id,
                     new_state=GameStage.WAITING_READY_TO_ANSWER,
                 )
-                await self._send_question()
+                await self._resend_question()
+
+    async def end_game(self):
+        await self.vk_accessor.send_message(
+            peer_id=self.conversation_id, text="Игра окончена!"
+        )
 
     def __repr__(self):
         return f"Это игра из {self.conversation_id}"
