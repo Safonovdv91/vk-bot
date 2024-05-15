@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint, select
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,11 +53,6 @@ class Player(BaseModel):
     __table_args__ = (
         UniqueConstraint("vk_user_id", "game_id", name="vk_user_id_game_id"),
     )
-
-    async def get_games(self, session):
-        stmt = select(Game).where(self.game_id == Game.id)
-        result = await session.execute(stmt)
-        return result.scalars().all()
 
 
 class PlayerAnswerGame(BaseModel):

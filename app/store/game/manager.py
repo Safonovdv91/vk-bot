@@ -54,7 +54,6 @@ class BotManager:
             conversation_id = update.object.message.peer_id
             message = update.object.message.text
             from_id = update.object.message.from_id
-
             if len(self.games) == 0:
                 await self.setup_game_store()
 

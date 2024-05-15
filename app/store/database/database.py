@@ -33,7 +33,7 @@ class Database:
 
         self.engine = create_async_engine(
             url=f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}",
-            echo=True,
+            echo=False,
             future=True,
         )
 

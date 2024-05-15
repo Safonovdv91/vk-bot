@@ -28,11 +28,11 @@ class GameLogic:
 
         self.answers: dict = {}
         for ans in game_model.question.answers:
-            self.answers[ans.title] = ans
+            self.answers[ans.title.lower()] = ans
 
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
-        self.max_count_gamers: int = 2  # Тестовые данные
+        self.max_count_gamers: int = 1  # Тестовые данные
 
         self.conversation_id: int = game_model.conversation_id
         self.game_state: GameStage = game_model.state
@@ -279,7 +279,7 @@ class GameLogic:
                 response_text="Уже нет в этом смысла!",
             )
 
-    async def waiting_answer(self, user_id, answer):
+    async def waiting_answer(self, user_id: int, answer: str):
         """Функция принимает ответ игрока во время ожидания ответа
         1) Проверяет верность ответа
         2) Проверяет есть ли ещё вопросы
@@ -296,14 +296,14 @@ class GameLogic:
                 game_id=self.game_id, vk_user_id=None
             )
 
-            if answer in self.answers:
+            if answer.lower() in self.answers:
                 player: Player = (
                     await self.game_accessor.get_player_by_vk_id_game_id(
                         vk_id=user_id, game_id=self.game_id
                     )
                 )
                 await self.game_accessor.player_add_answer_from_game(
-                    answer_id=self.answers[answer].id,
+                    answer_id=self.answers[answer.lower()].id,
                     player_id=player.id,
                     game_id=self.game_id,
                 )
@@ -311,7 +311,8 @@ class GameLogic:
                 await self.vk_accessor.send_message(
                     peer_id=self.conversation_id,
                     text=f"Игрок: {self.answered_player} ответил правильно"
-                    f" и получил {self.answers.pop(answer).score} очков!",
+                    f" и получил {self.answers.pop(answer.lower()).score}"
+                    f" очков!",
                 )
 
                 if len(self.answers.keys()) == 0:
@@ -338,8 +339,17 @@ class GameLogic:
                 await self._resend_question()
 
     async def end_game(self):
+        text = "Игра окончена, таблица победитей:\n\n"
+        players_scores = await self.game_accessor.get_score(
+            game_id=self.game_id
+        )
+
+        for player_name, player_score in players_scores:
+            text += "   {:<15} :{:<5} очков\n".format(player_name, player_score)
+
+        text += "\n\n Всем спасибо за игру!"
         await self.vk_accessor.send_message(
-            peer_id=self.conversation_id, text="Игра окончена!"
+            peer_id=self.conversation_id, text=text
         )
 
     async def cancel_game(self):

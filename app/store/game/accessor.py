@@ -2,12 +2,12 @@ from collections.abc import Sequence
 
 import sqlalchemy
 from asyncpg import UniqueViolationError
-from sqlalchemy import func, select, update
+from sqlalchemy import desc, func, select, update
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
 from app.game.models import Game, GameStage, Player, PlayerAnswerGame
-from app.quiz.models import Question
+from app.quiz.models import Answer, Question
 
 
 class GameAccessor(BaseAccessor):
@@ -181,3 +181,22 @@ class GameAccessor(BaseAccessor):
                 )
             )
         return result.unique().scalars().all()
+
+    async def get_score(self, game_id: int):
+        stmt = (
+            select(
+                Player.name.label("player_name"),
+                func.sum(Answer.score).label("total_score"),
+            )
+            .join(PlayerAnswerGame, Player.id == PlayerAnswerGame.player_id)
+            .join(Answer, PlayerAnswerGame.answer_id == Answer.id)
+            .join(Game, PlayerAnswerGame.game_id == Game.id)
+            .where(Game.id == game_id)
+            .group_by(Player.id, Player.name)
+            .order_by(desc("total_score"))
+        )
+
+        # Выполнение запроса и получение результатов
+        async with self.app.database.session() as session:
+            result = await session.execute(stmt)
+            return result.all()  # Получение всех результатов запроса
