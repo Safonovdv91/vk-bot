@@ -133,10 +133,12 @@ class GameAccessor(BaseAccessor):
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(Game)
-                .where(Question.id == id_)
-                .options(joinedload(Question.answers))
+                .where(Game.id == id_)
+                .options(
+                    joinedload(Game.question).joinedload(Question.answers),
+                    joinedload(Game.players),
+                )
             )
-
         return result.unique().scalar_one_or_none()
 
     async def player_add_answer_from_game(self, answer_id, player_id, game_id):

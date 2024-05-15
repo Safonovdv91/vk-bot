@@ -68,6 +68,11 @@ class BotManager:
                 new_game_model = await self.app.store.game_accessor.add_game(
                     peer_id=conversation_id
                 )
+                new_game_model = (
+                    await self.app.store.game_accessor.get_game_by_id(
+                        new_game_model.id
+                    )
+                )
                 new_game_logic = GameLogic(
                     app=self.app,
                     conversation_id=conversation_id,
