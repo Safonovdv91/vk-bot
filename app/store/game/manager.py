@@ -2,6 +2,7 @@ import typing
 from logging import getLogger
 
 from app.game.logic import GameLogic
+from app.game.models import GameStage
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -36,7 +37,6 @@ class BotManager:
             payload_text = event.object.payload.text
             user_id = event.object.user_id
             event_id = event.object.event_id
-
             game = self.games[conversation_id]
 
             if payload_text == "/reg_on":
@@ -54,10 +54,13 @@ class BotManager:
             conversation_id = update.object.message.peer_id
             message = update.object.message.text
             from_id = update.object.message.from_id
+
             if len(self.games) == 0:
                 await self.setup_game_store()
 
-            if conversation_id in self.games:
+            if conversation_id in self.games and self.games[
+                conversation_id
+            ].game_state not in (GameStage.CANCELED, GameStage.FINISHED):
                 self.logger.info(self.games[conversation_id])
                 game = self.games[conversation_id]
                 await self.app.store.game_manager.handle_games(
@@ -96,6 +99,7 @@ class BotManager:
         games: [
             GameManager
         ] = await self.app.store.game_accessor.get_active_games()
+
         for game in games:
             new_game = GameLogic(
                 app=self.app,
