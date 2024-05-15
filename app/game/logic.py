@@ -43,8 +43,8 @@ class GameLogic:
         self.question: str | None = None
         self.players: list[int] | None = []
 
-        self.game_id: int
-        self.question_id: int
+        self.game_id = game_model.id
+        self.question_id: game_model.question_id
 
     async def _resend_question(self):
         """Функция повторной отправки вопроса игры
