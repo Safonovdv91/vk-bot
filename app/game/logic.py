@@ -15,25 +15,29 @@ async def registration_timer(timeout):
 
 
 class GameLogic:
-    def __init__(self, app: "Application", conversation_id):
+    def __init__(self, app: "Application", conversation_id, game_model: Game):
         self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
         self.game_accessor = self.app.store.game_accessor
         self.vk_accessor = self.app.store.vk_api
 
-        self.players_list = []  # Список игроков
+        self.players_list = game_model.players  # Список игроков
         self.time_to_answer = 15  # время данное на ответ
+
         self.answers: dict = {}
+        for ans in game_model.question.answers:
+            self.answers[ans.title]=ans.score
+
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
         self.max_count_gamers: int = 1  # Тестовые данные
 
-        self.conversation_id: int = conversation_id
-        self.game_stage: GameStage = GameStage.WAIT_INIT
+        self.conversation_id: int = game_model.conversation_id
+        self.game_state: GameStage = game_model.state
 
         self.answered_player: VkUser | None = None
-        self.answered_player_id: int | None = None
+        self.answered_player_id: int | None = game_model.responsed_player_id
 
         self.pinned_conversation_message_id: int | None = None
         self.question: str | None = None
@@ -65,19 +69,19 @@ class GameLogic:
     async def get_state(self):
         await self.vk_accessor.send_message(
             peer_id=self.conversation_id,
-            text=f"Cейчас идет {self.game_stage}",
+            text=f"Cейчас идет {self.game_state}",
         )
 
     async def _start_registration_timer(self, timeout: int):
         await asyncio.create_task(registration_timer(timeout))
 
-        if self.game_stage == GameStage.REGISTRATION_GAMERS:
+        if self.game_state == GameStage.REGISTRATION_GAMERS:
             if (
                 self.min_count_gamers
                 < len(self.players)
                 < self.min_count_gamers
             ):
-                self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                self.game_state = GameStage.WAITING_READY_TO_ANSWER
                 await self.vk_accessor.send_message(
                     peer_id=self.conversation_id,
                     text=f"Время на регистрацию закончилось,"
@@ -85,7 +89,7 @@ class GameLogic:
                 )
 
             else:
-                self.game_stage = GameStage.WAIT_INIT
+                self.game_state = GameStage.WAIT_INIT
                 await self.vk_accessor.send_message(
                     peer_id=self.conversation_id,
                     text=f"Время на регистрацию закончилось,"
@@ -94,7 +98,7 @@ class GameLogic:
                 )
 
     async def start_game(self):
-        if self.game_stage == GameStage.WAIT_INIT:
+        if self.game_state == GameStage.WAIT_INIT:
             new_game: Game = await self.game_accessor.add_game(
                 self.conversation_id
             )
@@ -126,7 +130,7 @@ class GameLogic:
                 text="Началась регистрация на игру!",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
-            self.game_stage = GameStage.REGISTRATION_GAMERS
+            self.game_state = GameStage.REGISTRATION_GAMERS
             await self.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
             )
@@ -138,7 +142,7 @@ class GameLogic:
             )
 
     async def register_player(self, event_id, user_id):
-        if self.game_stage == GameStage.REGISTRATION_GAMERS:
+        if self.game_state == GameStage.REGISTRATION_GAMERS:
             self.logger.info("Регистрируем игрока")
 
             if user_id not in self.players:
@@ -151,7 +155,7 @@ class GameLogic:
                 )
 
                 if len(self.players) >= self.max_count_gamers:
-                    self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                    self.game_state = GameStage.WAITING_READY_TO_ANSWER
                     await self.game_accessor.change_state(
                         game_id=self.game_id,
                         new_state=GameStage.WAITING_READY_TO_ANSWER,
@@ -180,7 +184,7 @@ class GameLogic:
                 )
 
     async def unregister_player(self, event_id, user_id):
-        if self.game_stage == GameStage.REGISTRATION_GAMERS:
+        if self.game_state == GameStage.REGISTRATION_GAMERS:
             if user_id in self.players:
                 self.players.remove(user_id)
                 await self.app.store.game_accessor.delete_player(
@@ -221,10 +225,10 @@ class GameLogic:
         :return:
         """
         if (
-            self.game_stage == GameStage.WAITING_READY_TO_ANSWER
+            self.game_state == GameStage.WAITING_READY_TO_ANSWER
             and user_id in self.players
         ):
-            self.game_stage = GameStage.WAITING_ANSWER
+            self.game_state = GameStage.WAITING_ANSWER
             self.answered_player_id = user_id
             self.answered_player = await self.vk_accessor.get_vk_user(user_id)
 
@@ -251,7 +255,7 @@ class GameLogic:
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
 
-        elif self.game_stage == GameStage.WAITING_ANSWER:
+        elif self.game_state == GameStage.WAITING_ANSWER:
             await self.vk_accessor.send_event_answer(
                 event_id=event_id,
                 peer_id=self.conversation_id,
@@ -277,7 +281,7 @@ class GameLogic:
         :return:
         """
         if (
-            self.game_stage == GameStage.WAITING_ANSWER
+            self.game_state == GameStage.WAITING_ANSWER
             and user_id == self.answered_player_id
         ):
             await self.game_accessor.change_answer_player(
@@ -298,7 +302,7 @@ class GameLogic:
                 )
 
                 if len(self.answers.keys()) == 0:
-                    self.game_stage = GameStage.FINISHED
+                    self.game_state = GameStage.FINISHED
                     await self.game_accessor.change_state(
                         game_id=self.game_id, new_state=GameStage.FINISHED
                     )
@@ -306,14 +310,14 @@ class GameLogic:
 
                 else:
                     await self._resend_question()
-                    self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                    self.game_state = GameStage.WAITING_READY_TO_ANSWER
                     await self.game_accessor.change_state(
                         game_id=self.game_id,
                         new_state=GameStage.WAITING_READY_TO_ANSWER,
                     )
 
             else:
-                self.game_stage = GameStage.WAITING_READY_TO_ANSWER
+                self.game_state = GameStage.WAITING_READY_TO_ANSWER
                 await self.game_accessor.change_state(
                     game_id=self.game_id,
                     new_state=GameStage.WAITING_READY_TO_ANSWER,
@@ -323,6 +327,15 @@ class GameLogic:
     async def end_game(self):
         await self.vk_accessor.send_message(
             peer_id=self.conversation_id, text="Игра окончена!"
+        )
+
+    async def cancel_game(self):
+        await self.game_accessor.change_state(
+            game_id=self.game_id,
+            new_state=GameStage.CANCELED
+        )
+        await self.vk_accessor.send_message(
+            peer_id=self.conversation_id, text="Игра отменена!"
         )
 
     def __repr__(self):

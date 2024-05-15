@@ -17,12 +17,11 @@ class GameManager:
         self.app = app
         self.logger = getLogger("BotManager")
 
-        self.state = GameStage.WAIT_INIT
-        self.players_list = []
-
     async def handle_games(self, game: GameLogic, message: str, user_id: int):
-        if game.game_stage.WAIT_INIT and message == "start":
+        if message == "start":
             await game.start_game()
+        if message == "stop":
+            await game.cancel_game()
 
         await game.waiting_answer(user_id=user_id, answer=message)
 
@@ -30,7 +29,6 @@ class GameManager:
 class BotManager:
     def __init__(self, app: "Application"):
         self.app = app
-        self.bot = None
         self.logger = getLogger("BotManager")
         self.games = {}
 
@@ -60,6 +58,9 @@ class BotManager:
             message = update.object.message.text
             from_id = update.object.message.from_id
 
+            if len(self.games) == 0:
+                await self.setup_game_store()
+
             if conversation_id in self.games:
                 self.logger.info(self.games[conversation_id])
                 game = self.games[conversation_id]
@@ -67,11 +68,24 @@ class BotManager:
                     game=game, message=message, user_id=from_id
                 )
             else:
-                new_game = GameLogic(
-                    app=self.app, conversation_id=conversation_id
+                new_game_model = await self.app.store.game_accessor.add_game(peer_id=conversation_id)
+                new_game_logic = GameLogic(
+                    app=self.app, conversation_id=conversation_id, game_model=new_game_model
                 )
-                self.games[conversation_id] = new_game
-                self.logger.info("Создаем новую модель игры \n %s", new_game)
+
+                self.games[conversation_id] = new_game_logic
+                self.logger.info("Создаем новую модель игры \n %s", new_game_logic)
+
                 await self.app.store.game_manager.handle_games(
-                    game=new_game, message=message, user_id=from_id
+                    game=new_game_logic, message=message, user_id=from_id
                 )
+
+    async def setup_game_store(self):
+        """ Загрузка игр в словарь"""
+        self.logger.info("Инициализируем загрузку игр в БД")
+        games: [GameManager] = await self.app.store.game_accessor.get_active_games()
+        for game in games:
+            new_game = GameLogic(
+                app=self.app, conversation_id=game.conversation_id, game_model=game
+            )
+            self.games[new_game.conversation_id]=new_game
