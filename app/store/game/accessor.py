@@ -159,7 +159,7 @@ class GameAccessor(BaseAccessor):
             session.add(player_answer_game)
             await session.commit()
 
-    async def get_all_games(self):
+    async def get_active_games(self):
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(Game)
@@ -167,6 +167,7 @@ class GameAccessor(BaseAccessor):
                 .options(
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
+                    joinedload(Game.player_answers_games)
                 )
             )
         return result.unique().scalars().all()
