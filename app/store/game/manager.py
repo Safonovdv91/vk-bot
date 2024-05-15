@@ -74,7 +74,6 @@ class BotManager:
                 )
                 new_game_logic = GameLogic(
                     app=self.app,
-                    conversation_id=conversation_id,
                     game_model=new_game_model,
                 )
 
@@ -100,7 +99,6 @@ class BotManager:
         for game in games:
             new_game = GameLogic(
                 app=self.app,
-                conversation_id=game.conversation_id,
                 game_model=game,
             )
             self.games[new_game.conversation_id] = new_game

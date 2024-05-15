@@ -15,7 +15,7 @@ async def registration_timer(timeout):
 
 
 class GameLogic:
-    def __init__(self, app: "Application", conversation_id, game_model: Game):
+    def __init__(self, app: "Application", game_model: Game):
         self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
@@ -27,8 +27,8 @@ class GameLogic:
         self.question = game_model.question
 
         self.answers: dict = {}
-        for ans in game_model.question.answers:
-            self.answers[ans.title.lower()] = ans
+        for answer in game_model.question.answers:
+            self.answers[answer.title.lower()] = answer
 
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
@@ -64,10 +64,16 @@ class GameLogic:
             color="primary",
         ).get()
 
+        text = f"{self.question.title} \n"
+
+        for k, v in self.answers.items():
+            _ = "X" * len(k)
+            text += f"{_} = {v.score} очков\n"
+
         await keyboard_start_game.add_line([btn_ready_to_answer])
         await self.vk_accessor.send_message(
             peer_id=self.conversation_id,
-            text=self.question.title,
+            text=text,
             keyboard=await keyboard_start_game.get_keyboard(),
         )
 
