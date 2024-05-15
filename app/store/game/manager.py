@@ -2,7 +2,6 @@ import typing
 from logging import getLogger
 
 from app.game.logic import GameLogic
-from app.game.models import GameStage
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -66,13 +65,19 @@ class BotManager:
                     game=game, message=message, user_id=from_id
                 )
             else:
-                new_game_model = await self.app.store.game_accessor.add_game(peer_id=conversation_id)
+                new_game_model = await self.app.store.game_accessor.add_game(
+                    peer_id=conversation_id
+                )
                 new_game_logic = GameLogic(
-                    app=self.app, conversation_id=conversation_id, game_model=new_game_model
+                    app=self.app,
+                    conversation_id=conversation_id,
+                    game_model=new_game_model,
                 )
 
                 self.games[conversation_id] = new_game_logic
-                self.logger.info("Создаем новую модель игры \n %s", new_game_logic)
+                self.logger.info(
+                    "Создаем новую модель игры \n %s", new_game_logic
+                )
 
                 await self.app.store.game_manager.handle_games(
                     game=new_game_logic, message=message, user_id=from_id
@@ -83,11 +88,15 @@ class BotManager:
                 await cansel_game.cancel_game()
 
     async def setup_game_store(self):
-        """ Загрузка игр в словарь"""
+        """Загрузка игр в словарь"""
         self.logger.info("Инициализируем загрузку игр в БД")
-        games: [GameManager] = await self.app.store.game_accessor.get_active_games()
+        games: [
+            GameManager
+        ] = await self.app.store.game_accessor.get_active_games()
         for game in games:
             new_game = GameLogic(
-                app=self.app, conversation_id=game.conversation_id, game_model=game
+                app=self.app,
+                conversation_id=game.conversation_id,
+                game_model=game,
             )
             self.games[new_game.conversation_id] = new_game

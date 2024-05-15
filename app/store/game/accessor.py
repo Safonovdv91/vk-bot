@@ -3,7 +3,6 @@ from collections.abc import Sequence
 import sqlalchemy
 from asyncpg import UniqueViolationError
 from sqlalchemy import func, select, update
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
@@ -25,7 +24,11 @@ class GameAccessor(BaseAccessor):
                 # выбросить кастомное исключение
                 return None
 
-            game = Game(conversation_id=peer_id, question=question, state=GameStage.WAIT_INIT)
+            game = Game(
+                conversation_id=peer_id,
+                question=question,
+                state=GameStage.WAIT_INIT,
+            )
             session.add(game)
             await session.commit()
 
@@ -154,11 +157,13 @@ class GameAccessor(BaseAccessor):
         async with self.app.database.session() as session:
             result = await session.execute(
                 select(Game)
-                .where(Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED]))
+                .where(
+                    Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED])
+                )
                 .options(
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
-                    joinedload(Game.player_answers_games)
+                    joinedload(Game.player_answers_games),
                 )
             )
         return result.unique().scalars().all()

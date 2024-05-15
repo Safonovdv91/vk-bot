@@ -27,7 +27,7 @@ class GameLogic:
 
         self.answers: dict = {}
         for ans in game_model.question.answers:
-            self.answers[ans.title]=ans.score
+            self.answers[ans.title] = ans.score
 
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные
@@ -321,15 +321,14 @@ class GameLogic:
 
     async def cancel_game(self):
         await self.game_accessor.change_state(
-            game_id=self.game_id,
-            new_state=GameStage.CANCELED
+            game_id=self.game_id, new_state=GameStage.CANCELED
         )
 
         keyboard_empty = VkKeyboard()
         await self.vk_accessor.send_message(
             peer_id=self.conversation_id,
             text="Игра отменена!",
-            keyboard= await keyboard_empty.get_keyboard()
+            keyboard=await keyboard_empty.get_keyboard(),
         )
 
     def __repr__(self):
