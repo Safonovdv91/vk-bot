@@ -14,7 +14,7 @@ class GameAccessor(BaseAccessor):
     async def add_game(
         self,
         peer_id: int,
-    ) -> Sequence[Game] | None:
+    ) -> Game | None:
         async with self.app.database.session() as session:
             stmt = select(Question).order_by(func.random()).limit(1)
             result = await session.execute(stmt)
@@ -57,6 +57,18 @@ class GameAccessor(BaseAccessor):
                 self.logger.exception(
                     exc_info=exc, msg="Пользователь уже зарегестриован"
                 )
+
+    async def get_player_by_vk_id_game_id(self, vk_id: int, game_id):
+        stmt = (
+            select(Player)
+            .where(Player.vk_user_id == vk_id)
+            .where(Player.game_id == game_id)
+        )
+
+        async with self.app.database.session() as session:
+            player = await session.execute(stmt)
+
+        return player.scalar_one_or_none()
 
     async def delete_player(self, game_id: int, vk_user_id: int):
         async with self.app.database.session() as session:
