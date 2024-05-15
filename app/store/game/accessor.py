@@ -25,20 +25,11 @@ class GameAccessor(BaseAccessor):
                 # выбросить кастомное исключение
                 return None
 
-            game_data = {
-                "conversation_id": peer_id,
-                "question_id": question.id,
-                "state": GameStage.WAIT_INIT,
-            }
-
-            stmt = insert(Game).values(game_data)
-            stmt = stmt.on_conflict_do_nothing(
-                index_elements=["conversation_id"]
-            )
-            await session.execute(stmt)
+            game = Game(conversation_id=peer_id, question=question, state=GameStage.WAIT_INIT)
+            session.add(game)
             await session.commit()
 
-        return await self.get_game_by_peer_id(peer_id)
+        return game
 
     async def add_player(self, game_id: int, vk_user_id: int, name: str):
         player = Player(game_id=game_id, vk_user_id=vk_user_id, name=name)

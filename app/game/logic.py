@@ -99,16 +99,6 @@ class GameLogic:
 
     async def start_game(self):
         if self.game_state == GameStage.WAIT_INIT:
-            new_game: Game = await self.game_accessor.add_game(
-                self.conversation_id
-            )
-            self.logger.info(new_game)
-            self.question = new_game.question.title
-            self.game_id = new_game.id
-
-            for answer in new_game.question.answers:
-                self.answers[answer.title] = answer
-
             self.logger.info("START_GAME")
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
             btn_reg_on = VkButton(
@@ -334,8 +324,12 @@ class GameLogic:
             game_id=self.game_id,
             new_state=GameStage.CANCELED
         )
+
+        keyboard_empty = VkKeyboard()
         await self.vk_accessor.send_message(
-            peer_id=self.conversation_id, text="Игра отменена!"
+            peer_id=self.conversation_id,
+            text="Игра отменена!",
+            keyboard= await keyboard_empty.get_keyboard()
         )
 
     def __repr__(self):

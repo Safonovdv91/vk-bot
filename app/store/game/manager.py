@@ -20,8 +20,6 @@ class GameManager:
     async def handle_games(self, game: GameLogic, message: str, user_id: int):
         if message == "start":
             await game.start_game()
-        if message == "stop":
-            await game.cancel_game()
 
         await game.waiting_answer(user_id=user_id, answer=message)
 
@@ -80,6 +78,10 @@ class BotManager:
                     game=new_game_logic, message=message, user_id=from_id
                 )
 
+            if message == "/stop":
+                cansel_game: GameLogic = self.games.pop(conversation_id)
+                await cansel_game.cancel_game()
+
     async def setup_game_store(self):
         """ Загрузка игр в словарь"""
         self.logger.info("Инициализируем загрузку игр в БД")
@@ -88,4 +90,4 @@ class BotManager:
             new_game = GameLogic(
                 app=self.app, conversation_id=game.conversation_id, game_model=game
             )
-            self.games[new_game.conversation_id]=new_game
+            self.games[new_game.conversation_id] = new_game
