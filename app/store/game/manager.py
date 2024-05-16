@@ -63,25 +63,25 @@ class BotManager:
                 game = self.games[conversation_id]
 
             else:
-                new_game_model = await self.app.store.game_accessor.add_game(
+                game = await self.app.store.game_accessor.add_game(
                     peer_id=conversation_id
                 )
-                new_game_model = (
-                    await self.app.store.game_accessor.get_game_by_id(
-                        new_game_model.id
-                    )
+                game = await self.app.store.game_accessor.get_game_by_id(
+                    game.id
                 )
                 new_game_logic = GameLogic(
                     app=self.app,
-                    game_model=new_game_model,
+                    game_model=game,
                 )
 
                 self.games[conversation_id] = new_game_logic
                 self.logger.info(
                     "Создаем новую модель игры \n %s", new_game_logic
                 )
+            # todo Баг если уже какие то игры есть, но именно этой нету
 
-            if message == "start":
+            game = self.games[conversation_id]
+            if message == "start    ":
                 await game.start_game()
 
             await game.waiting_answer(user_id=from_id, answer=message)
