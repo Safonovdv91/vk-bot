@@ -17,18 +17,12 @@ class GameManager:
         self.app = app
         self.logger = getLogger("BotManager")
 
-    async def handle_games(self, game: GameLogic, message: str, user_id: int):
-        if message == "start":
-            await game.start_game()
-
-        await game.waiting_answer(user_id=user_id, answer=message)
-
 
 class BotManager:
     def __init__(self, app: "Application"):
         self.app = app
         self.logger = getLogger("BotManager")
-        self.games = {}
+        self.games: dict = {}
 
     async def handle_events(self, events: list[EventUpdate]):
         """Обработка callback событий"""
@@ -37,6 +31,10 @@ class BotManager:
             payload_text = event.object.payload.text
             user_id = event.object.user_id
             event_id = event.object.event_id
+
+            if not self.games:
+                await self.setup_game_store()
+
             game = self.games[conversation_id]
 
             if payload_text == "/reg_on":
@@ -55,7 +53,7 @@ class BotManager:
             message = update.object.message.text
             from_id = update.object.message.from_id
 
-            if len(self.games) == 0:
+            if not self.games:
                 await self.setup_game_store()
 
             if conversation_id in self.games and self.games[
@@ -63,9 +61,7 @@ class BotManager:
             ].game_state not in (GameStage.CANCELED, GameStage.FINISHED):
                 self.logger.info(self.games[conversation_id])
                 game = self.games[conversation_id]
-                await self.app.store.game_manager.handle_games(
-                    game=game, message=message, user_id=from_id
-                )
+
             else:
                 new_game_model = await self.app.store.game_accessor.add_game(
                     peer_id=conversation_id
@@ -85,9 +81,10 @@ class BotManager:
                     "Создаем новую модель игры \n %s", new_game_logic
                 )
 
-                await self.app.store.game_manager.handle_games(
-                    game=new_game_logic, message=message, user_id=from_id
-                )
+            if message == "start":
+                await game.start_game()
+
+            await game.waiting_answer(user_id=from_id, answer=message)
 
             if message == "/stop":
                 cansel_game: GameLogic = self.games.pop(conversation_id)
@@ -101,8 +98,12 @@ class BotManager:
         ] = await self.app.store.game_accessor.get_active_games()
 
         for game in games:
-            new_game = GameLogic(
+            self.games[
+                GameLogic(
+                    app=self.app,
+                    game_model=game,
+                ).conversation_id
+            ] = GameLogic(
                 app=self.app,
                 game_model=game,
             )
-            self.games[new_game.conversation_id] = new_game
