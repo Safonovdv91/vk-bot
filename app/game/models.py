@@ -39,7 +39,10 @@ class Game(BaseModel):
 
 class Player(BaseModel):
     __tablename__ = "players"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    __table_args__ = (
+        UniqueConstraint("vk_user_id", "game_id", name="vk_user_id_game_id"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     vk_user_id: Mapped[int] = mapped_column(nullable=False, primary_key=True)
     name: Mapped[str] = mapped_column(String[50])
     game_id: Mapped[int] = mapped_column(
@@ -50,18 +53,19 @@ class Player(BaseModel):
     player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
-    __table_args__ = (
-        UniqueConstraint("vk_user_id", "game_id", name="vk_user_id_game_id"),
-    )
 
 
 class PlayerAnswerGame(BaseModel):
     __tablename__ = "player_answers_games"
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"))
-    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
-    answer_id: Mapped[int] = mapped_column(ForeignKey("answers.id"))
+    player_id: Mapped[int] = mapped_column(
+        ForeignKey("players.id"), nullable=False
+    )
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), nullable=False)
+    answer_id: Mapped[int] = mapped_column(
+        ForeignKey("answers.id"), nullable=False
+    )
 
     player: Mapped[list["Player"]] = relationship(
         back_populates="player_answers_games"
