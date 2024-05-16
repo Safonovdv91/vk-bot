@@ -12,10 +12,6 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-async def registration_timer(timeout):
-    await asyncio.sleep(timeout)
-
-
 class GameLogic:
     def __init__(self, app: "Application", game_model: Game):
         self.game_id = None
@@ -23,7 +19,7 @@ class GameLogic:
         self.logger = getLogger("BotManager")
 
         self.players_list = game_model.players  # Список игроков
-        self.time_to_answer = 15  # время данное на ответ
+        self.time_to_answer = 5  # время данное на ответ
         self.question = game_model.question
         self.answers: dict = {}
 
@@ -36,9 +32,9 @@ class GameLogic:
         except sqlalchemy.orm.exc.DetachedInstanceError:
             pass
 
-        self.time_to_registration = 15
+        self.time_to_registration = 5
         self.min_count_gamers: int = 1  # ТЕстовые данные
-        self.max_count_gamers: int = 1  # Тестовые данные
+        self.max_count_gamers: int = 5  # Тестовые данные
 
         self.conversation_id: int = game_model.conversation_id
         self.game_state: GameStage = game_model.state
@@ -57,11 +53,45 @@ class GameLogic:
         self.game_id = game_model.id
         self.question_id: game_model.question_id
 
-    async def _resend_question(self):
-        """Функция повторной отправки вопроса игры
+    async def _registration_timer(self):
+        await asyncio.sleep(self.time_to_registration)
 
+        if self.game_state != GameStage.REGISTRATION_GAMERS:
+            raise asyncio.CancelledError
+
+        if self.min_count_gamers <= len(self.players) <= self.max_count_gamers:
+            self.game_state = GameStage.WAITING_READY_TO_ANSWER
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id,
+                new_state=GameStage.WAITING_READY_TO_ANSWER,
+            )
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text=f"Время вышло, набралось достаточное количество игроков!\n"
+                f"Зарегестрировалось: {len(self.players)}\n"
+                f"Минимально необходимо: {self.min_count_gamers}\n",
+            )
+            await self._resend_question(delay=1)
+
+        else:
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text=f"Время вышло, не набралось достаточное количество игроков!\n"
+                f"Зарегестрировалось: {len(self.players)}\n"
+                f"Минимально необходимо: {self.min_count_gamers}\n",
+            )
+            await self.cancel_game()
+
+    async def _resend_question(self, delay: int = 0):
+        """
+        Отправка вопроса в игру
+        :param delay: задержка в секундах на отправку сообщения
         :return:
         """
+        await self.app.store.vk_api.send_message(
+            peer_id=self.conversation_id, text="Внимание вопрос!"
+        )
+        await asyncio.sleep(delay)
         keyboard_start_game = VkKeyboard(one_time=False)
         btn_ready_to_answer = VkButton(
             label="Знаю ответ!",
@@ -88,31 +118,6 @@ class GameLogic:
             peer_id=self.conversation_id,
             text=f"Cейчас идет {self.game_state}",
         )
-
-    async def _start_registration_timer(self, timeout: int):
-        await asyncio.create_task(registration_timer(timeout))
-
-        if self.game_state == GameStage.REGISTRATION_GAMERS:
-            if (
-                self.min_count_gamers
-                < len(self.players)
-                < self.min_count_gamers
-            ):
-                self.game_state = GameStage.WAITING_READY_TO_ANSWER
-                await self.app.store.vk_api.send_message(
-                    peer_id=self.conversation_id,
-                    text=f"Время на регистрацию закончилось,"
-                    f" участвует {len(self.players)} игроков",
-                )
-
-            else:
-                self.game_state = GameStage.WAIT_INIT
-                await self.app.store.vk_api.send_message(
-                    peer_id=self.conversation_id,
-                    text=f"Время на регистрацию закончилось,"
-                    f" не набралось достаточное количество игроков"
-                    f" {len(self.players)}/{self.min_count_gamers}",
-                )
 
     async def start_game(self):
         if self.game_state == GameStage.WAIT_INIT:
@@ -141,7 +146,12 @@ class GameLogic:
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
             )
-            # timer = self._start_registration_timer(self.time_to_registration)
+
+            background_tasks = set()
+            task = asyncio.create_task(self._registration_timer())
+            background_tasks.add(task)
+            task.add_done_callback(background_tasks.discard)
+
         else:
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
@@ -184,7 +194,6 @@ class GameLogic:
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id,
                         text=f"Набралось достаточное количество игроков"
-                        f" {len(self.players)}/{self.min_count_gamers}",
                     )
                     await self._resend_question()
 
@@ -324,8 +333,8 @@ class GameLogic:
 
                 await self.app.store.vk_api.send_message(
                     peer_id=self.conversation_id,
-                    text=f"Игрок: {self.answered_player} ответил правильно"
-                    f" и получил {self.answers.pop(answer.lower()).score}"
+                    text=f"Игрок: {self.answered_player} ответил правильно! \n"
+                    f" Получил {self.answers.pop(answer.lower()).score}"
                     f" очков!",
                 )
 
@@ -367,6 +376,7 @@ class GameLogic:
         )
 
     async def cancel_game(self):
+        self.game_state = GameStage.CANCELED
         await self.app.store.game_accessor.change_state(
             game_id=self.game_id, new_state=GameStage.CANCELED
         )
