@@ -12,12 +12,6 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class GameManager:
-    def __init__(self, app: "Application"):
-        self.app = app
-        self.logger = getLogger("BotManager")
-
-
 class BotManager:
     def __init__(self, app: "Application"):
         self.app = app
@@ -78,10 +72,9 @@ class BotManager:
                 self.logger.info(
                     "Создаем новую модель игры \n %s", new_game_logic
                 )
-            # todo Баг если уже какие то игры есть, но именно этой нету
 
             game = self.games[conversation_id]
-            if message == "start    ":
+            if message == "start":
                 await game.start_game()
 
             await game.waiting_answer(user_id=from_id, answer=message)
@@ -93,11 +86,7 @@ class BotManager:
     async def setup_game_store(self):
         """Загрузка игр в словарь"""
         self.logger.info("Инициализируем загрузку игр в БД")
-        games: [
-            GameManager
-        ] = await self.app.store.game_accessor.get_active_games()
-
-        for game in games:
+        for game in await self.app.store.game_accessor.get_active_games():
             self.games[
                 GameLogic(
                     app=self.app,
