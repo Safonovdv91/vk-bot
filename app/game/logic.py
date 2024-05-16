@@ -2,6 +2,8 @@ import asyncio
 import typing
 from logging import getLogger
 
+import sqlalchemy.orm.exc
+
 from app.game.models import Game, GameStage, Player
 from app.store.vk_api.dataclasses import VkUser
 from app.store.vk_api.utils import VkButton, VkKeyboard
@@ -25,10 +27,16 @@ class GameLogic:
         self.players_list = game_model.players  # Список игроков
         self.time_to_answer = 15  # время данное на ответ
         self.question = game_model.question
-
         self.answers: dict = {}
+
         for answer in game_model.question.answers:
             self.answers[answer.title.lower()] = answer
+
+        try:
+            for _ in game_model.player_answers_games:
+                self.answers.pop(_.answer.title.lower())
+        except sqlalchemy.orm.exc.DetachedInstanceError:
+            pass
 
         self.time_to_registration = 15
         self.min_count_gamers: int = 1  # ТЕстовые данные

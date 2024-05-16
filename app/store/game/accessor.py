@@ -177,7 +177,9 @@ class GameAccessor(BaseAccessor):
                 .options(
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
-                    joinedload(Game.player_answers_games),
+                    joinedload(Game.player_answers_games).joinedload(
+                        PlayerAnswerGame.answer
+                    ),
                 )
             )
         return result.unique().scalars().all()

@@ -57,6 +57,14 @@ class Player(BaseModel):
 
 class PlayerAnswerGame(BaseModel):
     __tablename__ = "player_answers_games"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id",
+            "game_id",
+            "answer_id",
+            name="idx_unique_player_game_answer",
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
 
     player_id: Mapped[int] = mapped_column(
