@@ -16,7 +16,14 @@ from app.store.vk_api.constants import (
     VkMessagesMethods,
 )
 from app.store.vk_api.dataclasses import (
+    EventObject,
+    EventPayload,
+    EventUpdate,
     LongPollResponse,
+    MessageObject,
+    MessageUpdate,
+    VkMessage,
+    VkUser,
 )
 from app.store.vk_api.poller import Poller
 
@@ -69,13 +76,16 @@ class VkApiAccessor(BaseAccessor):
     ) -> dict | None:
         """Отправка запроса к API Вконтакте"""
         params["access_token"] = self.app.config.bot.token
+
         try:
             async with self.session.post(
                 self._build_query(self._API_PATH, method.value, params)
             ) as response:
                 return await response.json()
+
         except Exception as e:
             self.logger.error("Ошибка при отправке запроcа в VkApi", exc_info=e)
+
             return None
 
     async def _get_long_poll_service(self) -> None:
@@ -108,6 +118,7 @@ class VkApiAccessor(BaseAccessor):
             )
         ) as response:
             data = await response.json()
+
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
@@ -115,14 +126,44 @@ class VkApiAccessor(BaseAccessor):
                 LongPollResponse.Schema().load(data)
             )
             messages, events = [], []
+
             for update in long_poll_response.updates:
                 if update.type == "message_new":
-                    messages.append(update)
+                    new_msg = MessageUpdate(
+                        event_id=update.event_id,
+                        group_id=update.group_id,
+                        object=MessageObject(
+                            message=VkMessage(
+                                conversation_message_id=update.object.message.conversation_message_id,
+                                date=update.object.message.date,
+                                from_id=update.object.message.from_id,
+                                peer_id=update.object.message.peer_id,
+                                text=update.object.message.text,
+                            ),
+                        ),
+                    )
+                    messages.append(new_msg)
                 elif update.type == "message_event":
-                    events.append(update)
+                    new_event = EventUpdate(
+                        event_id=update.event_id,
+                        group_id=update.group_id,
+                        type=update.type,
+                        object=EventObject(
+                            event_id=update.object.event_id,
+                            peer_id=update.object.peer_id,
+                            user_id=update.object.user_id,
+                            payload=EventPayload(
+                                text=update.object.payload.text,
+                                type=update.object.payload.type,
+                            ),
+                        ),
+                    )
+                    events.append(new_event)
+
             try:
                 await self.app.store.bots_manager.handle_events(events)
                 await self.app.store.bots_manager.handle_updates(messages)
+
             except Exception as e:
                 self.logger.exception(
                     "Не вышло переслать сообщения в Bot Manager", exc_info=e
@@ -142,9 +183,26 @@ class VkApiAccessor(BaseAccessor):
             "peer_id": peer_id,
             "message": text,
         }
+
         if keyboard:
             params["keyboard"] = keyboard
+
         await self._send_request(VkMessagesMethods.send, params)
+
+    async def get_vk_user(self, user_id):
+        params = {
+            "user_ids": user_id,
+        }
+        data = await self._send_request(VkMessagesMethods.get, params)
+        response = data.get("response")
+
+        if response:
+            return VkUser(
+                id=response[0].get("id"),
+                first_name=response[0].get("first_name"),
+                last_name=response[0].get("last_name"),
+            )
+        return None
 
     async def edit_message(
         self, peer_id: int, conversation_message_id, text: str
