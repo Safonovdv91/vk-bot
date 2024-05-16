@@ -13,14 +13,27 @@ if typing.TYPE_CHECKING:
 
 
 class GameLogic:
-    def __init__(self, app: "Application", game_model: Game):
+    def __init__(
+        self,
+        app: "Application",
+        game_model: Game,
+    ):
         self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
 
+        self.game_model = game_model
+        self.game_id = game_model.id
+        self.question_id: game_model.question_id
         self.players_list = game_model.players  # Список игроков
-        self.time_to_answer = 5  # время данное на ответ
         self.question = game_model.question
+        self.time_to_registration: int = game_model.profile.time_to_registration
+        self.min_count_gamers: int = game_model.profile.min_count_gamers
+        self.max_count_gamers: int = game_model.profile.max_count_gamers
+        self.conversation_id: int = game_model.conversation_id
+        self.game_state: GameStage = game_model.state
+        # self.players = game_model.players
+
         self.answers: dict = {}
 
         for answer in game_model.question.answers:
@@ -32,26 +45,15 @@ class GameLogic:
         except sqlalchemy.orm.exc.DetachedInstanceError:
             pass
 
-        self.time_to_registration = 5
-        self.min_count_gamers: int = 1  # ТЕстовые данные
-        self.max_count_gamers: int = 5  # Тестовые данные
-
-        self.conversation_id: int = game_model.conversation_id
-        self.game_state: GameStage = game_model.state
-
         self.answered_player: VkUser | None = None
         self.answered_player_id: int | None = game_model.responsed_player_id
 
-        self.players = game_model.players
         self.players: dict = {}
 
         if game_model.players:
             for player in game_model.players:
                 self.players[player.vk_user_id] = player
         self.players_vk_id: list[int] = []
-
-        self.game_id = game_model.id
-        self.question_id: game_model.question_id
 
     async def _registration_timer(self):
         await asyncio.sleep(self.time_to_registration)
@@ -121,7 +123,6 @@ class GameLogic:
 
     async def start_game(self):
         if self.game_state == GameStage.WAIT_INIT:
-            self.logger.info("START_GAME")
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
             btn_reg_on = VkButton(
                 label="Буду играть",
@@ -139,7 +140,8 @@ class GameLogic:
 
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
-                text="Началась регистрация на игру!",
+                text=f"Началась регистрация на игру!\n"
+                f" Режим игры :\n{self.game_model.profile}]",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
             self.game_state = GameStage.REGISTRATION_GAMERS
@@ -273,8 +275,7 @@ class GameLogic:
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
-                response_text=f"Поздравляю, ты отвечаешь на вопрос,"
-                f"У тебя {self.time_to_answer} секунд!",
+                response_text="Поздравляю, ты отвечаешь на вопрос,",
             )
 
             keyboard_start_game = VkKeyboard(one_time=True)
@@ -335,7 +336,7 @@ class GameLogic:
                     peer_id=self.conversation_id,
                     text=f"Игрок: {self.answered_player} ответил правильно! \n"
                     f" Получил {self.answers.pop(answer.lower()).score}"
-                    f" очков!",
+                    f" очков! \n ---------------",
                 )
 
                 if len(self.answers.keys()) == 0:

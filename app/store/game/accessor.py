@@ -149,6 +149,7 @@ class GameAccessor(BaseAccessor):
                 .options(
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
+                    joinedload(Game.profile),
                 )
             )
         return result.unique().scalar_one_or_none()
@@ -180,6 +181,7 @@ class GameAccessor(BaseAccessor):
                     joinedload(Game.player_answers_games).joinedload(
                         PlayerAnswerGame.answer
                     ),
+                    joinedload(Game.profile),
                 )
             )
         return result.unique().scalars().all()

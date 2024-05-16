@@ -17,6 +17,41 @@ class GameStage(Enum):
     CANCELED = "CANCELED"
 
 
+class GameSettings(BaseModel):
+    __tablename__ = "game_settings"
+    __table_args__ = (
+        UniqueConstraint(
+            "time_to_registration",
+            "min_count_gamers",
+            "max_count_gamers",
+            "time_to_answer",
+            name="profile_name",
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    profile_name: Mapped[str] = mapped_column(
+        String[20], nullable=False, unique=True
+    )
+    time_to_registration: Mapped[int] = mapped_column(default=15)
+    min_count_gamers: Mapped[int] = mapped_column(default=1)
+    max_count_gamers: Mapped[int] = mapped_column(default=6)
+    time_to_answer: Mapped[int] = mapped_column(default=15)
+    description: Mapped[str | None] = mapped_column(String(60))
+
+    games: Mapped[list["Game"]] = relationship(back_populates="profile")
+
+    def __str__(self):
+        if self.description:
+            return (
+                f"Профиль № {self.id} - {self.profile_name}\n"
+                f"### [{self.description}]"
+            )
+        return f"Профиль № {self.id} - {self.profile_name}"
+
+    def __repr__(self):
+        return str(self)
+
+
 class Game(BaseModel):
     __tablename__ = "games"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -29,7 +64,11 @@ class Game(BaseModel):
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     state: Mapped[PG_ENUM] = mapped_column(PG_ENUM(GameStage), nullable=False)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("game_settings.id"), default=1
+    )
 
+    profile: Mapped["GameSettings"] = relationship(back_populates="games")
     question: Mapped["Question"] = relationship(back_populates="games")
     players: Mapped[list["Player"]] = relationship(back_populates="game")
     player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
