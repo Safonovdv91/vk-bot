@@ -76,15 +76,15 @@ class GameLogic:
         else:
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
-                text=f"Время вышло, не набралось достаточное количество игроков!\n"
+                text=f"Время вышло, не набралось достаточное"
+                f" количество игроков!\n"
                 f"Зарегестрировалось: {len(self.players)}\n"
                 f"Минимально необходимо: {self.min_count_gamers}\n",
             )
             await self.cancel_game()
 
     async def _resend_question(self, delay: int = 0):
-        """
-        Отправка вопроса в игру
+        """Отправка вопроса в игру
         :param delay: задержка в секундах на отправку сообщения
         :return:
         """
@@ -193,7 +193,7 @@ class GameLogic:
 
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id,
-                        text=f"Набралось достаточное количество игроков"
+                        text="Набралось достаточное количество игроков",
                     )
                     await self._resend_question()
 
