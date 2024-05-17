@@ -28,6 +28,12 @@ class GameListQuerySchema(Schema):
     offset = fields.Int(required=False, validate=validate.Range(min=1))
 
 
+class GameListQueryFilteredSchema(Schema):
+    limit = fields.Int(required=False, validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=1))
+    state = fields.Str(required=False)
+
+
 class PlayerSchema(Schema):
     vk_user_id = fields.Int(required=True)
     name = fields.Str(required=True)

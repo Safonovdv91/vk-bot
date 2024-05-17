@@ -8,6 +8,7 @@ from aiohttp_apispec import (
 from app.game.models import GameSettings
 from app.game.schemes import (
     GameIdSchema,
+    GameListQueryFilteredSchema,
     GameListQuerySchema,
     GameListSchema,
     GameSchema,
@@ -17,6 +18,30 @@ from app.game.schemes import (
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
+
+
+class GameListView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Game"],
+        summary="Получить все игры",
+        description="Отобразить все игры",
+    )
+    @querystring_schema(GameListQueryFilteredSchema)
+    @response_schema(GameListSchema)
+    async def get(self):
+        limit = self.request.query.get("limit")
+        offset = self.request.query.get("offset")
+        state = self.request.query.get("state")
+
+        return json_response(
+            data=GameListSchema().dump(
+                {
+                    "games": await self.store.game_accessor.get_games_filtered_state(
+                        limit=limit, offset=offset, state=state
+                    )
+                }
+            )
+        )
 
 
 class GameProfileListActiveView(AuthRequiredMixin, View):
