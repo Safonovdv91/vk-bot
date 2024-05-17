@@ -1,10 +1,16 @@
 from aiohttp.web_exceptions import HTTPBadRequest
-from aiohttp_apispec import querystring_schema, request_schema, response_schema
+from aiohttp_apispec import (
+    docs,
+    querystring_schema,
+    request_schema,
+    response_schema,
+)
 
 from app.quiz.models import Answer
 from app.quiz.schemes import (
     QuestionIdSchema,
     QuestionListSchema,
+    QuestionPatchRequestsSchema,
     QuestionSchema,
     ThemeIdSchema,
     ThemeListQuerySchema,
@@ -17,6 +23,11 @@ from app.web.utils import json_response
 
 
 class ThemeAddView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Quiz"],
+        summary="Добавление темы",
+        description="Здесь добавляется тема",
+    )
     @request_schema(ThemeSchema)
     @response_schema(ThemeSchema)
     async def post(self):
@@ -28,6 +39,7 @@ class ThemeAddView(AuthRequiredMixin, View):
 
 
 class ThemeListView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Отобразить темы")
     @querystring_schema(ThemeListQuerySchema)
     @response_schema(ThemeListSchema)
     async def get(self):
@@ -39,6 +51,7 @@ class ThemeListView(AuthRequiredMixin, View):
 
 
 class ThemeDeleteByIdView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Удалить тему по ID")
     @querystring_schema(ThemeIdSchema)
     @response_schema(ThemeSchema)
     async def delete(self):
@@ -60,6 +73,7 @@ class ThemeDeleteByIdView(AuthRequiredMixin, View):
 
 
 class QuestionAddView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Добавить вопрос")
     @request_schema(QuestionSchema)
     @response_schema(QuestionSchema)
     async def post(self):
@@ -79,6 +93,7 @@ class QuestionAddView(AuthRequiredMixin, View):
 
 
 class QuestionGetByIdView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Получить вопрос по id")
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
     async def get(self):
@@ -89,6 +104,7 @@ class QuestionGetByIdView(AuthRequiredMixin, View):
 
 
 class QuestionDeleteByIdView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Удалить вопрос по ID")
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
     async def delete(self):
@@ -106,6 +122,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
 
 
 class QuestionListView(AuthRequiredMixin, View):
+    @docs(tags=["Quiz"], summary="Отобразить список вопросов")
     @querystring_schema(ThemeIdSchema)
     @response_schema(QuestionListSchema)
     async def get(self):
@@ -119,3 +136,37 @@ class QuestionListView(AuthRequiredMixin, View):
         return json_response(
             data=QuestionListSchema().dump({"questions": questions})
         )
+
+
+class QuestionPatchById(AuthRequiredMixin, View):
+    @docs(
+        tags=["Quiz"],
+        summary="Изменить вопрос по ID",
+        description="Изменить существубщий вопрос, "
+        "можно изменить title и id темы.",
+    )
+    @querystring_schema(QuestionIdSchema)
+    @request_schema(QuestionPatchRequestsSchema)
+    @response_schema(QuestionSchema)
+    async def patch(self):
+        question_id = self.request.query.get("question_id")
+        raw_answers = self.data.get("answers")
+        theme_id = self.data.get("theme_id")
+        title = self.data.get("title")
+
+        if raw_answers:
+            answers = [
+                Answer(title=answer_raw["title"], score=answer_raw["score"])
+                for answer_raw in raw_answers
+            ]
+        else:
+            answers = None
+
+        question = await self.store.quizzes.update_question(
+            question_id=int(question_id),
+            new_theme_id=theme_id,
+            new_title=title,
+            new_answers=answers,
+        )
+
+        return json_response(data=QuestionSchema().dump(question))
