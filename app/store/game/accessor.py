@@ -168,9 +168,11 @@ class GameAccessor(BaseAccessor):
             session.add(player_answer_game)
             await session.commit()
 
-    async def get_active_games(self):
+    async def get_active_games(
+        self, limit: int | None = None, offset: int | None = None
+    ):
         async with self.app.database.session() as session:
-            result = await session.execute(
+            stmt = (
                 select(Game)
                 .where(
                     Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED])
@@ -182,8 +184,19 @@ class GameAccessor(BaseAccessor):
                         PlayerAnswerGame.answer
                     ),
                     joinedload(Game.profile),
+                    joinedload(Game.player_answers_games).joinedload(
+                        PlayerAnswerGame.player
+                    ),
                 )
             )
+
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
         return result.unique().scalars().all()
 
     async def get_score(self, game_id: int):
