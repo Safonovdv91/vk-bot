@@ -1,9 +1,11 @@
 import typing
 
 from app.game.views import (
+    DefaultSettingsView,
     GameGetByIdView,
     GameListView,
     GameProfileListActiveView,
+    PatchSettingsView,
     SettingsAddView,
     SettingsGetByIdView,
 )
@@ -19,3 +21,5 @@ def setup_routes(app: "Application"):
 
     app.router.add_view("/game/profile.get_by_id", SettingsGetByIdView)
     app.router.add_view("/game/profile.add", SettingsAddView)
+    app.router.add_view("/game/profile.patch", PatchSettingsView)
+    app.router.add_view("/game/profile.default", DefaultSettingsView)

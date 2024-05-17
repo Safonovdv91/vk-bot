@@ -7,11 +7,14 @@ from aiohttp_apispec import (
 
 from app.game.models import GameSettings
 from app.game.schemes import (
+    DefaultGameSettingsIdSchema,
     GameIdSchema,
     GameListQueryFilteredSchema,
     GameListQuerySchema,
     GameListSchema,
     GameSchema,
+    GameSettingsIdSchema,
+    GameSettingsPatchSchema,
     GameSettingsSchema,
     SettingsIdSchema,
 )
@@ -104,8 +107,8 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 class SettingsAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Game", "Settings"],
-        summary="Добавить новую тему",
-        description="Добавить новый профиль в со своими настройками",
+        summary="Изменить профиль по ID",
+        description="Изменить характеристики игрового профиля",
     )
     @request_schema(GameSettingsSchema)
     @response_schema(GameSettingsSchema)
@@ -126,3 +129,59 @@ class SettingsAddView(AuthRequiredMixin, View):
                 )
             )
         )
+
+
+class PatchSettingsView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Game", "Settings"],
+        summary="Ищменить настройки профиля игры",
+        description="Изменить стандартные настройки игры, создан для удобства",
+    )
+    @querystring_schema(GameSettingsIdSchema)
+    @request_schema(GameSettingsPatchSchema)
+    async def patch(self):
+        profile_id = self.request.query.get("profile_id")
+
+        id_ = int(profile_id)
+        profile_name = self.data.get("profile_name")
+        description = self.data.get("description")
+        time_to_registration = self.data.get("time_to_registration")
+        min_count_gamers = self.data.get("min_count_gamers")
+        max_count_gamers = self.data.get("max_count_gamers")
+        time_to_answer = self.data.get("time_to_answer")
+
+        await self.store.game_settings_accessor.update_settings(
+            id_=id_,
+            profile_name=profile_name,
+            description=description,
+            time_to_registration=time_to_registration,
+            min_count_gamers=min_count_gamers,
+            max_count_gamers=max_count_gamers,
+            time_to_answer=time_to_answer,
+        )
+
+        return json_response()
+
+
+class DefaultSettingsView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Game", "Settings"],
+        summary="Сменить настройки стандартной игры",
+        description="Изменить стандартные настройки игры",
+    )
+    @querystring_schema(DefaultGameSettingsIdSchema)
+    async def patch(self):
+        time_to_registration = self.request.query.get("time_to_registration")
+        min_count_gamers = self.request.query.get("min_count_gamers")
+        max_count_gamers = self.request.query.get("max_count_gamers")
+        time_to_answer = self.request.query.get("time_to_answer")
+
+        await self.store.game_settings_accessor.update_settings(
+            id_=1,
+            time_to_registration=time_to_registration,
+            min_count_gamers=min_count_gamers,
+            max_count_gamers=max_count_gamers,
+            time_to_answer=time_to_answer,
+        )
+
+        return json_response()

@@ -306,3 +306,65 @@ class GameSettingsAccessor(BaseAccessor):
                 )
             session.add(new_game_settings)
             await session.commit()
+
+    async def update_settings(
+        self,
+        id_: int,
+        profile_name: str | None = None,
+        description: str | None = None,
+        time_to_registration: int | None = None,
+        min_count_gamers: int | None = None,
+        max_count_gamers: int | None = None,
+        time_to_answer: int | None = None,
+    ):
+        async with self.app.database.session() as session:
+            try:
+                stmt = select(GameSettings).where(GameSettings.id == id_)
+                result = await session.execute(stmt)
+                game_settings = result.scalar_one_or_none()
+
+                if not game_settings:
+                    raise HTTPBadRequest(reason="Такая тема не найдена")
+
+                stmt = update(GameSettings).where(GameSettings.id == id_)
+
+                if (
+                    min_count_gamers
+                    and max_count_gamers
+                    and int(min_count_gamers) > int(max_count_gamers)
+                ):
+                    raise HTTPBadRequest(
+                        reason="Минимальное кол-во игроков должно "
+                        "быть менньше максимального"
+                    )
+
+                if profile_name:
+                    stmt = stmt.values(profile_name=profile_name)
+                if description:
+                    stmt = stmt.values(description=description)
+                if time_to_registration:
+                    stmt = stmt.values(
+                        time_to_registration=int(time_to_registration)
+                    )
+                if min_count_gamers:
+                    stmt = stmt.values(min_count_gamers=int(min_count_gamers))
+                if max_count_gamers:
+                    stmt = stmt.values(max_count_gamers=int(max_count_gamers))
+                if time_to_answer:
+                    stmt = stmt.values(time_to_answer=int(time_to_answer))
+
+                await session.execute(stmt)
+                await session.commit()
+
+            except (
+                sqlalchemy.exc.IntegrityError,
+                sqlalchemy.exc.ProgrammingError,
+            ) as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await (
+                    session.rollback()
+                )  # Откатываем транзакцию перед повторной попыткой
+                raise HTTPBadRequest(
+                    reason="Не удалось обновить вопрос из-за"
+                    " проблемы целостности данных"
+                ) from exc

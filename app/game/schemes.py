@@ -7,6 +7,54 @@ from marshmallow import (
 from app.quiz.schemes import AnswerSchema, QuestionSchema
 
 
+class GameSettingsIdSchema(Schema):
+    profile_id = fields.Int(validate=validate.Range(min=1), required=True)
+
+
+class DefaultGameSettingsIdSchema(Schema):
+    time_to_registration = fields.Int(
+        required=False, validate=validate.Range(min=1)
+    )
+    min_count_gamers = fields.Int(
+        required=False, validate=validate.Range(min=1)
+    )
+    max_count_gamers = fields.Int(
+        required=False, validate=validate.Range(min=1, max=30)
+    )
+    time_to_answer = fields.Int(
+        required=False, validate=validate.Range(min=1, max=999)
+    )
+
+
+class GameSettingsPatchSchema(Schema):
+    profile_name = fields.Str(required=False)
+    description = fields.Str(required=False)
+    time_to_registration = fields.Int(
+        required=False, validate=validate.Range(min=1)
+    )
+    min_count_gamers = fields.Int(
+        required=False, validate=validate.Range(min=1)
+    )
+    max_count_gamers = fields.Int(
+        required=False, validate=validate.Range(min=1, max=30)
+    )
+    time_to_answer = fields.Int(
+        required=False, validate=validate.Range(min=1, max=999)
+    )
+
+
+class GameSettingsPatchRequestsSchema(Schema):
+    profile_name = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=20),
+    )
+    time_to_registration = fields.Str(required=False)
+    min_count_gamers = fields.Int(required=False)
+    max_count_gamers = fields.Int(required=False)
+    time_to_answer = fields.Int(required=False)
+    description = fields.Str(required=False)
+
+
 class GameSettingsSchema(Schema):
     id = fields.Int(required=False)
     profile_name = fields.Str(required=True)
