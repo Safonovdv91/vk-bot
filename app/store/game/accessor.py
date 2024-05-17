@@ -1,12 +1,19 @@
 from collections.abc import Sequence
 
 import sqlalchemy
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPNotFound
 from asyncpg import UniqueViolationError
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
-from app.game.models import Game, GameStage, Player, PlayerAnswerGame
+from app.game.models import (
+    Game,
+    GameSettings,
+    GameStage,
+    Player,
+    PlayerAnswerGame,
+)
 from app.quiz.models import Answer, Question
 
 
@@ -217,3 +224,34 @@ class GameAccessor(BaseAccessor):
         async with self.app.database.session() as session:
             result = await session.execute(stmt)
             return result.all()  # Получение всех результатов запроса
+
+
+class GameSettingsAccessor(BaseAccessor):
+    async def get_by_id(self, id_: int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(GameSettings)
+                .where(GameSettings.id == id_)
+                .options(
+                    joinedload(GameSettings.games),
+                )
+            )
+            game_settings = result.unique().scalar_one_or_none()
+
+            if not game_settings:
+                raise HTTPNotFound(reason="Такого профиля не существует")
+
+        return game_settings
+
+    async def add_settings(self, new_game_settings: GameSettings):
+        async with self.app.database.session() as session:
+            if (
+                new_game_settings.min_count_gamers
+                > new_game_settings.max_count_gamers
+            ):
+                raise HTTPBadRequest(
+                    reason="min_count_gamers не может быть"
+                    " больше max_count_gamers"
+                )
+            session.add(new_game_settings)
+            await session.commit()
