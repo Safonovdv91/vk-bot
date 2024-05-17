@@ -31,7 +31,19 @@ class GameListQuerySchema(Schema):
 class GameListQueryFilteredSchema(Schema):
     limit = fields.Int(required=False, validate=validate.Range(min=1))
     offset = fields.Int(required=False, validate=validate.Range(min=1))
-    state = fields.Str(required=False)
+    state = fields.Str(
+        required=False,
+        validate=validate.OneOf(
+            [
+                "registration",
+                "wait_btn_answer",
+                "wait_answer",
+                "finished",
+                "canceled",
+            ],
+            error="Недопустимое значение для поля state.",
+        ),
+    )
 
 
 class PlayerSchema(Schema):

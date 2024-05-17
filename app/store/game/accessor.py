@@ -18,6 +18,19 @@ from app.quiz.models import Answer, Question
 
 
 class GameAccessor(BaseAccessor):
+    def __init__(self, app, *args, **kwargs):
+        self.app = app
+        super().__init__(app, *args, **kwargs)
+
+        self.state_dict = {
+            "init": GameStage.WAIT_INIT,
+            "registration": GameStage.REGISTRATION_GAMERS,
+            "wait_btn_answer": GameStage.WAITING_READY_TO_ANSWER,
+            "wait_answer": GameStage.WAITING_ANSWER,
+            "finished": GameStage.FINISHED,
+            "canceled": GameStage.CANCELED,
+        }
+
     async def add_game(
         self,
         peer_id: int,
@@ -174,6 +187,44 @@ class GameAccessor(BaseAccessor):
             )
             session.add(player_answer_game)
             await session.commit()
+
+    async def get_games_filtered_state(
+        self,
+        limit: int | None = None,
+        offset: int | None = None,
+        state: str | None = None,
+    ):
+        async with self.app.database.session() as session:
+            stmt = select(Game).options(
+                joinedload(Game.question).joinedload(Question.answers),
+                joinedload(Game.players),
+                joinedload(Game.player_answers_games).joinedload(
+                    PlayerAnswerGame.answer
+                ),
+                joinedload(Game.profile),
+                joinedload(Game.player_answers_games).joinedload(
+                    PlayerAnswerGame.player
+                ),
+            )
+
+            if state:
+                try:
+                    stmt = stmt.where(
+                        Game.state == self.state_dict[state.lower()]
+                    )
+                except KeyError as exc:
+                    raise HTTPBadRequest(
+                        reason="Такого статуса не существует"
+                    ) from exc
+
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()
 
     async def get_active_games(
         self, limit: int | None = None, offset: int | None = None

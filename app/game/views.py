@@ -24,7 +24,7 @@ class GameListView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить все игры",
-        description="Отобразить все игры",
+        description=" Отобразить все игры",
     )
     @querystring_schema(GameListQueryFilteredSchema)
     @response_schema(GameListSchema)
@@ -32,16 +32,11 @@ class GameListView(AuthRequiredMixin, View):
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
         state = self.request.query.get("state")
-
-        return json_response(
-            data=GameListSchema().dump(
-                {
-                    "games": await self.store.game_accessor.get_games_filtered_state(
-                        limit=limit, offset=offset, state=state
-                    )
-                }
-            )
+        games = await self.store.game_accessor.get_games_filtered_state(
+            limit=limit, offset=offset, state=state
         )
+
+        return json_response(data=GameListSchema().dump({"games": games}))
 
 
 class GameProfileListActiveView(AuthRequiredMixin, View):
