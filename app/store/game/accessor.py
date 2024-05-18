@@ -1,9 +1,11 @@
+import typing
 from collections.abc import Sequence
 
 import sqlalchemy
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPNotFound
 from asyncpg import UniqueViolationError
 from sqlalchemy import desc, func, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
@@ -15,6 +17,9 @@ from app.game.models import (
     PlayerAnswerGame,
 )
 from app.quiz.models import Answer, Question
+
+if typing.TYPE_CHECKING:
+    from app.web.app import Application
 
 
 class GameAccessor(BaseAccessor):
@@ -42,8 +47,10 @@ class GameAccessor(BaseAccessor):
 
             if question is None:
                 # выбросить кастомное исключение
+                self.logger.error(
+                    "В Базе данных отсутствует хотябы один вопрос!"
+                )
                 return None
-
             game = Game(
                 conversation_id=peer_id,
                 question=question,
@@ -278,6 +285,58 @@ class GameAccessor(BaseAccessor):
 
 
 class GameSettingsAccessor(BaseAccessor):
+    async def connect(self, app: "Application") -> None:
+        self.logger.info("Подключаем GameSettingsAccessor")
+
+        game_settings = GameSettings(
+            id=1,
+            profile_name="default",
+            description="Стандартная игра 100 к 1.\n "
+            "Правила игры:\n"
+            "Вам в чат будет выслан вопрос и необходимо "
+            "предложить наиболее популярные ответы "
+            " для того чтобы отвечать - необходимо нажать на"
+            " кнопку, после чего будет "
+            "предоставлено ограниченное время на ответ.\n"
+            "Наиболее популярный ответ приносит больше всего очков.\n"
+            " | XXXXXXX | (7) = 50 очков "
+            "- ответ из 7 букв и принесет 50 очков.",
+            time_to_registration=15,
+            min_count_gamers=1,
+            max_count_gamers=4,
+            time_to_answer=15,
+        )
+        await self.upsert_settings(new_game_settings=game_settings)
+
+    async def upsert_settings(self, new_game_settings: GameSettings):
+        if (
+            new_game_settings.min_count_gamers
+            > new_game_settings.max_count_gamers
+        ):
+            raise HTTPBadRequest(
+                reason="min_count_gamers не может быть"
+                " больше max_count_gamers"
+            )
+        game_settings_data = {
+            "profile_name": new_game_settings.profile_name,
+            "description": new_game_settings.description,
+            "time_to_registration": new_game_settings.time_to_registration,
+            "min_count_gamers": new_game_settings.min_count_gamers,
+            "max_count_gamers": new_game_settings.max_count_gamers,
+            "time_to_answer": new_game_settings.time_to_answer,
+        }
+
+        stmt = insert(GameSettings).values(game_settings_data)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["profile_name"])
+
+        async with self.app.database.session() as session:
+            await session.execute(stmt)
+            await session.commit()
+            self.logger.info(
+                "Создан новый профиль игры с именем %s",
+                new_game_settings.profile_name,
+            )
+
     async def get_by_id(self, id_: int):
         async with self.app.database.session() as session:
             result = await session.execute(

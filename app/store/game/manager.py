@@ -60,6 +60,14 @@ class BotManager:
                 game = await self.app.store.game_accessor.add_game(
                     peer_id=conversation_id
                 )
+                if game is None:
+                    self.logger.error("Не удалось создать игру")
+                    await self.app.store.vk_api.send_message(
+                        text="Не удалось создать игру т.к. нет вопросов в БД",
+                        peer_id=conversation_id,
+                    )
+                    return
+
                 game = await self.app.store.game_accessor.get_game_by_id(
                     game.id
                 )
