@@ -36,7 +36,7 @@ class GameSettings(BaseModel):
     min_count_gamers: Mapped[int] = mapped_column(default=1)
     max_count_gamers: Mapped[int] = mapped_column(default=6)
     time_to_answer: Mapped[int] = mapped_column(default=15)
-    description: Mapped[str | None] = mapped_column(String(60))
+    description: Mapped[str | None] = mapped_column(String(1000))
 
     games: Mapped[list["Game"]] = relationship(back_populates="profile")
 
@@ -44,7 +44,9 @@ class GameSettings(BaseModel):
         if self.description:
             return (
                 f"Профиль № {self.id} - {self.profile_name}\n"
-                f"### [{self.description}]"
+                f"### [{self.description} ]\n#####\n"
+                f" Время на регистрацию: {self.time_to_registration} секунд\n"
+                f" Время на ответ: {self.time_to_answer} секунд "
             )
         return f"Профиль № {self.id} - {self.profile_name}"
 
