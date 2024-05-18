@@ -21,6 +21,7 @@ class GameLogic:
         self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
+        self.background_tasks = set()
 
         self.game_model = game_model
         self.game_id = game_model.id
@@ -28,12 +29,11 @@ class GameLogic:
         self.players_list = game_model.players  # Список игроков
         self.question = game_model.question
         self.time_to_registration: int = game_model.profile.time_to_registration
+        self.time_to_answer: int = game_model.profile.time_to_answer
         self.min_count_gamers: int = game_model.profile.min_count_gamers
         self.max_count_gamers: int = game_model.profile.max_count_gamers
         self.conversation_id: int = game_model.conversation_id
         self.game_state: GameStage = game_model.state
-        # self.players = game_model.players
-
         self.answers: dict = {}
 
         for answer in game_model.question.answers:
@@ -45,7 +45,7 @@ class GameLogic:
         except sqlalchemy.orm.exc.DetachedInstanceError:
             pass
 
-        self.answered_player: VkUser | None = None
+        self.answered_player: VkUser = VkUser(id=1, first_name="", last_name="")
         self.answered_player_id: int | None = game_model.responsed_player_id
 
         self.players: dict = {}
@@ -54,6 +54,23 @@ class GameLogic:
             for player in game_model.players:
                 self.players[player.vk_user_id] = player
         self.players_vk_id: list[int] = []
+
+    async def _answer_timer(self):
+        try:
+            await asyncio.sleep(self.time_to_answer)
+
+            self.game_state = GameStage.WAITING_READY_TO_ANSWER
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id,
+                new_state=GameStage.WAITING_READY_TO_ANSWER,
+            )
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text="Время вышло,игрок не успел ответить",
+            )
+            await self._resend_question(delay=1)
+        except asyncio.CancelledError:
+            pass
 
     async def _registration_timer(self):
         await asyncio.sleep(self.time_to_registration)
@@ -106,19 +123,13 @@ class GameLogic:
 
         for k, v in self.answers.items():
             _ = "X" * len(k)
-            text += f"{_} = {v.score} очков\n"
+            text += f"| {_} |   ({len(k)})  = {v.score} очков\n"
 
         await keyboard_start_game.add_line([btn_ready_to_answer])
         await self.app.store.vk_api.send_message(
             peer_id=self.conversation_id,
             text=text,
             keyboard=await keyboard_start_game.get_keyboard(),
-        )
-
-    async def get_state(self):
-        await self.app.store.vk_api.send_message(
-            peer_id=self.conversation_id,
-            text=f"Cейчас идет {self.game_state}",
         )
 
     async def start_game(self):
@@ -149,10 +160,9 @@ class GameLogic:
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
             )
 
-            background_tasks = set()
             task = asyncio.create_task(self._registration_timer())
-            background_tasks.add(task)
-            task.add_done_callback(background_tasks.discard)
+            self.background_tasks.add(task)
+            task.add_done_callback(self.background_tasks.discard)
 
         else:
             await self.app.store.vk_api.send_message(
@@ -192,10 +202,9 @@ class GameLogic:
                         game_id=self.game_id,
                         new_state=GameStage.WAITING_READY_TO_ANSWER,
                     )
-
                     await self.app.store.vk_api.send_message(
                         peer_id=self.conversation_id,
-                        text="Набралось достаточное количество игроков",
+                        text="Набралось достаточное " "количество игроков",
                     )
                     await self._resend_question()
 
@@ -287,6 +296,10 @@ class GameLogic:
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
 
+            task = asyncio.create_task(self._answer_timer())
+            self.background_tasks.add(task)
+            task.add_done_callback(self.background_tasks.discard)
+
         elif self.game_state == GameStage.WAITING_ANSWER:
             await self.app.store.vk_api.send_event_answer(
                 event_id=event_id,
@@ -316,6 +329,9 @@ class GameLogic:
             self.game_state == GameStage.WAITING_ANSWER
             and user_id == self.answered_player_id
         ):
+            for task in self.background_tasks:
+                task.cancel()
+
             await self.app.store.game_accessor.change_answer_player(
                 game_id=self.game_id, vk_user_id=None
             )
@@ -331,6 +347,8 @@ class GameLogic:
                     player_id=player.id,
                     game_id=self.game_id,
                 )
+                if self.answered_player is None:
+                    self.answered_player = ""
 
                 await self.app.store.vk_api.send_message(
                     peer_id=self.conversation_id,
