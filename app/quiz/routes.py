@@ -5,6 +5,7 @@ from app.quiz.views import (
     QuestionDeleteByIdView,
     QuestionGetByIdView,
     QuestionListView,
+    QuestionPatchById,
     ThemeAddView,
     ThemeDeleteByIdView,
     ThemeListView,
@@ -23,3 +24,4 @@ def setup_routes(app: "Application"):
     app.router.add_view("/quiz.questions_get_by_id", QuestionGetByIdView)
     app.router.add_view("/quiz.questions_list", QuestionListView)
     app.router.add_view("/quiz.questions_delete_by_id", QuestionDeleteByIdView)
+    app.router.add_view("/quiz.questions_patch_by_id", QuestionPatchById)

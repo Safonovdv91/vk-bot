@@ -7,6 +7,7 @@ from aiohttp.web_exceptions import (
     HTTPNotFound,
     HTTPServiceUnavailable,
 )
+from sqlalchemy import update
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -88,6 +89,13 @@ class QuizAccessor(BaseAccessor):
     ) -> Question:
         async with self.app.database.session() as session:
             question = Question(title=title, theme_id=theme_id, answers=answers)
+            sum_score = sum(answer.score for answer in question.answers)
+
+            if sum_score != 100:
+                raise HTTPBadRequest(
+                    reason=f"Сумма очков всех ответов должна быть равна 100, "
+                    f"текущая сумма: {sum_score}"
+                )
 
             try:
                 session.add(question)
@@ -182,3 +190,48 @@ class QuizAccessor(BaseAccessor):
 
             else:
                 return question
+
+    async def update_question(
+        self,
+        question_id: int,
+        new_title: str | None,
+        new_theme_id: int | None,
+        new_answers: Iterable[Answer] | None,
+    ):
+        async with self.app.database.session() as session:
+            try:
+                stmt = select(Question).where(Question.id == question_id)
+                result = await session.execute(stmt)
+                question = result.scalar_one_or_none()
+
+                if not question:
+                    raise HTTPBadRequest(reason="Вопрос не найден")
+
+                stmt = update(Question).where(Question.id == question_id)
+                if new_title:
+                    stmt = stmt.values(title=new_title)
+                if new_theme_id:
+                    stmt = stmt.values(theme_id=new_theme_id)
+
+                await session.execute(stmt)
+                await session.commit()
+
+            except (
+                sqlalchemy.exc.IntegrityError,
+                sqlalchemy.exc.ProgrammingError,
+            ) as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await (
+                    session.rollback()
+                )  # Откатываем транзакцию перед повторной попыткой
+                raise HTTPBadRequest(
+                    reason="Не удалось обновить вопрос из-за"
+                    " проблемы целостности данных"
+                ) from exc
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await (
+                    session.rollback()
+                )  # Откатываем транзакцию перед повторной попыткой
+                raise HTTPServiceUnavailable from exc

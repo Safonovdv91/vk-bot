@@ -74,7 +74,7 @@ class BotManager:
                 )
 
             game = self.games[conversation_id]
-            if message == "start":
+            if message == "/start":
                 await game.start_game()
 
             await game.waiting_answer(user_id=from_id, answer=message)

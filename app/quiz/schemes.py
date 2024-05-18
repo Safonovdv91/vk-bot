@@ -46,3 +46,14 @@ class QuestionIdSchema(Schema):
 
 class QuestionListSchema(Schema):
     questions = fields.Nested(QuestionSchema, many=True)
+
+
+class QuestionPatchRequestsSchema(Schema):
+    title = fields.Str(required=False)
+    theme_id = fields.Int(required=False)
+    # answers = fields.Nested(
+    #     AnswerSchema,
+    #     many=True,
+    #     required=True,
+    #     validate=validate.Length(min=2, max=10),
+    # )

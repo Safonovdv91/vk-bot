@@ -1,16 +1,36 @@
 from collections.abc import Sequence
 
 import sqlalchemy
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPNotFound
 from asyncpg import UniqueViolationError
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
-from app.game.models import Game, GameStage, Player, PlayerAnswerGame
+from app.game.models import (
+    Game,
+    GameSettings,
+    GameStage,
+    Player,
+    PlayerAnswerGame,
+)
 from app.quiz.models import Answer, Question
 
 
 class GameAccessor(BaseAccessor):
+    def __init__(self, app, *args, **kwargs):
+        self.app = app
+        super().__init__(app, *args, **kwargs)
+
+        self.state_dict = {
+            "init": GameStage.WAIT_INIT,
+            "registration": GameStage.REGISTRATION_GAMERS,
+            "wait_btn_answer": GameStage.WAITING_READY_TO_ANSWER,
+            "wait_answer": GameStage.WAITING_ANSWER,
+            "finished": GameStage.FINISHED,
+            "canceled": GameStage.CANCELED,
+        }
+
     async def add_game(
         self,
         peer_id: int,
@@ -168,9 +188,49 @@ class GameAccessor(BaseAccessor):
             session.add(player_answer_game)
             await session.commit()
 
-    async def get_active_games(self):
+    async def get_games_filtered_state(
+        self,
+        limit: int | None = None,
+        offset: int | None = None,
+        state: str | None = None,
+    ):
         async with self.app.database.session() as session:
-            result = await session.execute(
+            stmt = select(Game).options(
+                joinedload(Game.question).joinedload(Question.answers),
+                joinedload(Game.players),
+                joinedload(Game.player_answers_games).joinedload(
+                    PlayerAnswerGame.answer
+                ),
+                joinedload(Game.profile),
+                joinedload(Game.player_answers_games).joinedload(
+                    PlayerAnswerGame.player
+                ),
+            )
+
+            if state:
+                try:
+                    stmt = stmt.where(
+                        Game.state == self.state_dict[state.lower()]
+                    )
+                except KeyError as exc:
+                    raise HTTPBadRequest(
+                        reason="Такого статуса не существует"
+                    ) from exc
+
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()
+
+    async def get_active_games(
+        self, limit: int | None = None, offset: int | None = None
+    ):
+        async with self.app.database.session() as session:
+            stmt = (
                 select(Game)
                 .where(
                     Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED])
@@ -182,8 +242,19 @@ class GameAccessor(BaseAccessor):
                         PlayerAnswerGame.answer
                     ),
                     joinedload(Game.profile),
+                    joinedload(Game.player_answers_games).joinedload(
+                        PlayerAnswerGame.player
+                    ),
                 )
             )
+
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
         return result.unique().scalars().all()
 
     async def get_score(self, game_id: int):
@@ -204,3 +275,96 @@ class GameAccessor(BaseAccessor):
         async with self.app.database.session() as session:
             result = await session.execute(stmt)
             return result.all()  # Получение всех результатов запроса
+
+
+class GameSettingsAccessor(BaseAccessor):
+    async def get_by_id(self, id_: int):
+        async with self.app.database.session() as session:
+            result = await session.execute(
+                select(GameSettings)
+                .where(GameSettings.id == id_)
+                .options(
+                    joinedload(GameSettings.games),
+                )
+            )
+            game_settings = result.unique().scalar_one_or_none()
+
+            if not game_settings:
+                raise HTTPNotFound(reason="Такого профиля не существует")
+
+        return game_settings
+
+    async def add_settings(self, new_game_settings: GameSettings):
+        async with self.app.database.session() as session:
+            if (
+                new_game_settings.min_count_gamers
+                > new_game_settings.max_count_gamers
+            ):
+                raise HTTPBadRequest(
+                    reason="min_count_gamers не может быть"
+                    " больше max_count_gamers"
+                )
+            session.add(new_game_settings)
+            await session.commit()
+
+    async def update_settings(
+        self,
+        id_: int,
+        profile_name: str | None = None,
+        description: str | None = None,
+        time_to_registration: int | None = None,
+        min_count_gamers: int | None = None,
+        max_count_gamers: int | None = None,
+        time_to_answer: int | None = None,
+    ):
+        async with self.app.database.session() as session:
+            try:
+                stmt = select(GameSettings).where(GameSettings.id == id_)
+                result = await session.execute(stmt)
+                game_settings = result.scalar_one_or_none()
+
+                if not game_settings:
+                    raise HTTPBadRequest(reason="Такая тема не найдена")
+
+                stmt = update(GameSettings).where(GameSettings.id == id_)
+
+                if (
+                    min_count_gamers
+                    and max_count_gamers
+                    and int(min_count_gamers) > int(max_count_gamers)
+                ):
+                    raise HTTPBadRequest(
+                        reason="Минимальное кол-во игроков должно "
+                        "быть менньше максимального"
+                    )
+
+                if profile_name:
+                    stmt = stmt.values(profile_name=profile_name)
+                if description:
+                    stmt = stmt.values(description=description)
+                if time_to_registration:
+                    stmt = stmt.values(
+                        time_to_registration=int(time_to_registration)
+                    )
+                if min_count_gamers:
+                    stmt = stmt.values(min_count_gamers=int(min_count_gamers))
+                if max_count_gamers:
+                    stmt = stmt.values(max_count_gamers=int(max_count_gamers))
+                if time_to_answer:
+                    stmt = stmt.values(time_to_answer=int(time_to_answer))
+
+                await session.execute(stmt)
+                await session.commit()
+
+            except (
+                sqlalchemy.exc.IntegrityError,
+                sqlalchemy.exc.ProgrammingError,
+            ) as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await (
+                    session.rollback()
+                )  # Откатываем транзакцию перед повторной попыткой
+                raise HTTPBadRequest(
+                    reason="Не удалось обновить вопрос из-за"
+                    " проблемы целостности данных"
+                ) from exc
