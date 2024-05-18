@@ -152,7 +152,7 @@ class GameLogic:
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
                 text=f"Началась регистрация на игру!\n"
-                f" Режим игры :\n{self.game_model.profile}]",
+                f" Режим игры :\n{self.game_model.profile}\n",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
             self.game_state = GameStage.REGISTRATION_GAMERS
@@ -284,7 +284,8 @@ class GameLogic:
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
-                response_text="Поздравляю, ты отвечаешь на вопрос,",
+                response_text=f"Поздравляю, ты отвечаешь на "
+                f"вопрос, у тебя {self.game_model.profile}",
             )
 
             keyboard_start_game = VkKeyboard(one_time=True)
@@ -405,6 +406,3 @@ class GameLogic:
             text="Игра отменена!",
             keyboard=await keyboard_empty.get_keyboard(),
         )
-
-    def __repr__(self):
-        return f"Это игра из {self.conversation_id}"
