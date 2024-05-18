@@ -7,10 +7,10 @@ admin:
   password: admin
 database:
   host: localhost
-  port: 5432
+  port: 5433
   user: vk_user
   password: vk_pass
-  database: vk_game_tests
+  database: vk_game
 bot:
   token: vk1.a.N-LUKJ9cCDWHon_xSQ2BAu1K5hjovrP-1CfmZ1O393fcrvRsDfp0-mxZ9BN8F_wCMOTHy0TY71UBUmhKfYP2cPbN4M2szIGZcImr4NjHcC54gO6qXAaNFioxRVlr2O7eSdt8omUAkz3mrwvPCazCwe6l5sZw4m5MZL33sJB04pX4ioCVsiIQPBCowI-9qhEKywr2JT4GoxY9XLINrP6VAA
   group_id: 225776298
