@@ -64,7 +64,6 @@ class BotManager:
                 conversation_id
             ].game_state not in (GameStage.CANCELED, GameStage.FINISHED):
                 self.logger.info(self.games[conversation_id])
-                game = self.games[conversation_id]
 
             else:
                 game = await self.app.store.game_accessor.add_game(
@@ -98,12 +97,16 @@ class BotManager:
             await game.waiting_answer(user_id=from_id, answer=message)
 
             if message == "/stop":
-                cansel_game: GameLogic = self.games.pop(conversation_id)
-                await cansel_game.cancel_game(from_id)
+                cansel_game: GameLogic = self.games[conversation_id]
+
+                if await cansel_game.cancel_game(from_id):
+                    self.games.pop(conversation_id)
 
             if message == "/finish":
-                cansel_game: GameLogic = self.games.pop(conversation_id)
-                await cansel_game.end_game(from_id)
+                cansel_game: GameLogic = self.games[conversation_id]
+
+                if await cansel_game.end_game(from_id):
+                    self.games.pop(conversation_id)
 
     async def setup_game_store(self):
         """Загрузка игр в словарь"""
