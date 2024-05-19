@@ -156,6 +156,17 @@ class GameAccessor(BaseAccessor):
             await session.execute(stmt)
             await session.commit()
 
+    async def change_admin_game_id(self, game_id: int, vk_user_id: int):
+        async with self.app.database.session() as session:
+            stmt = (
+                update(Game)
+                .where(Game.id == game_id)
+                .values(admin_game_id=vk_user_id)
+                .execution_options(synchronize_session="fetch")
+            )
+            await session.execute(stmt)
+            await session.commit()
+
     async def get_game_by_peer_id(self, peer_id: int) -> Sequence[Game] | None:
         async with self.app.database.session() as session:
             result = await session.execute(

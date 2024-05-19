@@ -135,6 +135,9 @@ class GameLogic:
     async def start_game(self, admin_id: int):
         if self.game_state == GameStage.WAIT_INIT:
             self.game_model.admin_game_id = admin_id
+            await self.app.store.game_accessor.change_admin_game_id(
+                game_id=self.game_id, vk_user_id=admin_id
+            )
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
             btn_reg_on = VkButton(
                 label="Буду играть",
@@ -378,8 +381,8 @@ class GameLogic:
                 )
                 await self._resend_question()
 
-    async def end_game(self, user_id: int):
-        if user_id in (self.players, self.game_model.admin_game_id):
+    async def end_game(self, user_id: int) -> bool:
+        if user_id in self.players or user_id == self.game_model.admin_game_id:
             self.game_state = GameStage.FINISHED
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.FINISHED
@@ -400,8 +403,11 @@ class GameLogic:
                 text=text,
                 keyboard=await VkKeyboard().get_keyboard(),
             )
+            return True
 
-    async def cancel_game(self, user_id: int):
+        return False
+
+    async def cancel_game(self, user_id: int) -> bool:
         if user_id == self.game_model.admin_game_id:
             self.game_state = GameStage.CANCELED
             await self.app.store.game_accessor.change_state(
@@ -413,3 +419,6 @@ class GameLogic:
                 text="Игра отменена!",
                 keyboard=await keyboard_empty.get_keyboard(),
             )
+            return True
+
+        return False
