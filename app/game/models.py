@@ -58,6 +58,7 @@ class Game(BaseModel):
     __tablename__ = "games"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversation_id: Mapped[int | None] = mapped_column(default=None)
+    admin_game_id: Mapped[int | None] = mapped_column(default=None)
     pinned_conversation_message_id: Mapped[int | None] = mapped_column(
         default=None
     )
