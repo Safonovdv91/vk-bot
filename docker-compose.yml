@@ -17,13 +17,7 @@ services:
     build:
       context: .
     container_name: "vk_bot_app"
-    command: ["python", "main.py"]
-    environment:
-      - DATABASE_HOST=db
-      - DATABASE_PORT=5432
-      - DATABASE_USER=vk_user
-      - DATABASE_PASSWORD=vk_pass
-      - DATABASE_NAME=vk_game
+    command: bash -c "alembic upgrade head && python main.py"
     ports:
       - "9000:8000"
     depends_on:
