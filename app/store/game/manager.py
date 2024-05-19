@@ -29,15 +29,25 @@ class BotManager:
             if not self.games:
                 await self.setup_game_store()
 
-            game = self.games[conversation_id]
+            try:
+                game = self.games[conversation_id]
 
-            if payload_text == "/reg_on":
-                await game.register_player(event_id=event_id, user_id=user_id)
-            elif payload_text == "/reg_off":
-                await game.unregister_player(event_id=event_id, user_id=user_id)
-            elif payload_text == "/give_answer":
-                await game.waiting_ready_to_answer(
-                    event_id=event_id, user_id=user_id
+                if payload_text == "/reg_on":
+                    await game.register_player(
+                        event_id=event_id, user_id=user_id
+                    )
+                elif payload_text == "/reg_off":
+                    await game.unregister_player(
+                        event_id=event_id, user_id=user_id
+                    )
+                elif payload_text == "/give_answer":
+                    await game.waiting_ready_to_answer(
+                        event_id=event_id, user_id=user_id
+                    )
+
+            except KeyError:
+                self.logger.error(
+                    "Пришло эвент сообщение в несуществующую игру"
                 )
 
     async def handle_updates(self, updates: list[MessageUpdate]):
@@ -83,13 +93,17 @@ class BotManager:
 
             game = self.games[conversation_id]
             if message == "/start":
-                await game.start_game()
+                await game.start_game(admin_id=from_id)
 
             await game.waiting_answer(user_id=from_id, answer=message)
 
             if message == "/stop":
                 cansel_game: GameLogic = self.games.pop(conversation_id)
-                await cansel_game.cancel_game()
+                await cansel_game.cancel_game(from_id)
+
+            if message == "/finish":
+                cansel_game: GameLogic = self.games.pop(conversation_id)
+                await cansel_game.end_game(from_id)
 
     async def setup_game_store(self):
         """Загрузка игр в словарь"""
