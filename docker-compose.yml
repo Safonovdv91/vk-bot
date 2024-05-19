@@ -1,0 +1,30 @@
+services:
+  db:
+    container_name: "vk_bot_postgres"
+    image: postgres:15.4-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: vk_user
+      POSTGRES_PASSWORD: vk_pass
+      POSTGRES_DB: vk_game
+    ports:
+      - "9001:5432"
+    volumes:
+      - /vk_bot/pg_data:/var/lib/postgresql/data
+    networks:
+      - vkbot-net
+  app:
+    build:
+      context: .
+    container_name: "vk_bot_app"
+    command: bash -c "alembic upgrade head && python main.py"
+    ports:
+      - "9000:8000"
+    depends_on:
+      - db
+    networks:
+      - vkbot-net
+
+networks:
+  vkbot-net:
+    driver: bridge
