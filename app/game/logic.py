@@ -284,7 +284,7 @@ class GameLogic:
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
-                response_text=f"Поздравляю, ты отвечаешь на вопрос!",
+                response_text="Поздравляю, ты отвечаешь на вопрос!",
             )
 
             keyboard_start_game = VkKeyboard(one_time=True)
