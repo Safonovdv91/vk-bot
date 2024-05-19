@@ -100,7 +100,7 @@ class GameLogic:
                 f"Зарегестрировалось: {len(self.players)}\n"
                 f"Минимально необходимо: {self.min_count_gamers}\n",
             )
-            await self.cancel_game()
+            await self.cancel_game(self.game_model.admin_game_id)
 
     async def _resend_question(self, delay: int = 0):
         """Отправка вопроса в игру
@@ -132,8 +132,9 @@ class GameLogic:
             keyboard=await keyboard_start_game.get_keyboard(),
         )
 
-    async def start_game(self):
+    async def start_game(self, admin_id: int):
         if self.game_state == GameStage.WAIT_INIT:
+            self.game_model.admin_game_id = admin_id
             keyboard_start_game = VkKeyboard(one_time=False, inline=False)
             btn_reg_on = VkButton(
                 label="Буду играть",
@@ -359,11 +360,7 @@ class GameLogic:
                 )
 
                 if len(self.answers.keys()) == 0:
-                    self.game_state = GameStage.FINISHED
-                    await self.app.store.game_accessor.change_state(
-                        game_id=self.game_id, new_state=GameStage.FINISHED
-                    )
-                    await self.end_game()
+                    await self.end_game(user_id=user_id)
 
                 else:
                     await self._resend_question()
@@ -381,28 +378,38 @@ class GameLogic:
                 )
                 await self._resend_question()
 
-    async def end_game(self):
-        text = "Игра окончена, таблица победитей:\n\n"
-        players_scores = await self.app.store.game_accessor.get_score(
-            game_id=self.game_id
-        )
+    async def end_game(self, user_id: int):
+        if user_id in (self.players, self.game_model.admin_game_id):
+            self.game_state = GameStage.FINISHED
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id, new_state=GameStage.FINISHED
+            )
+            text = "Игра окончена, таблица победитей:\n\n"
+            players_scores = await self.app.store.game_accessor.get_score(
+                game_id=self.game_id
+            )
 
-        for player_name, player_score in players_scores:
-            text += "   {:<15} :{:<5} очков\n".format(player_name, player_score)
+            for player_name, player_score in players_scores:
+                text += " {:<15} :{:<5} очков\n".format(
+                    player_name, player_score
+                )
 
-        text += "\n\n Всем спасибо за игру!"
-        await self.app.store.vk_api.send_message(
-            peer_id=self.conversation_id, text=text
-        )
+            text += "\n\n Всем спасибо за игру!"
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text=text,
+                keyboard=await VkKeyboard().get_keyboard(),
+            )
 
-    async def cancel_game(self):
-        self.game_state = GameStage.CANCELED
-        await self.app.store.game_accessor.change_state(
-            game_id=self.game_id, new_state=GameStage.CANCELED
-        )
-        keyboard_empty = VkKeyboard()
-        await self.app.store.vk_api.send_message(
-            peer_id=self.conversation_id,
-            text="Игра отменена!",
-            keyboard=await keyboard_empty.get_keyboard(),
-        )
+    async def cancel_game(self, user_id: int):
+        if user_id == self.game_model.admin_game_id:
+            self.game_state = GameStage.CANCELED
+            await self.app.store.game_accessor.change_state(
+                game_id=self.game_id, new_state=GameStage.CANCELED
+            )
+            keyboard_empty = VkKeyboard()
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text="Игра отменена!",
+                keyboard=await keyboard_empty.get_keyboard(),
+            )
