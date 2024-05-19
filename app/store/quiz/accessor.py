@@ -9,7 +9,6 @@ from aiohttp.web_exceptions import (
     HTTPServiceUnavailable,
 )
 from sqlalchemy import update
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -28,49 +27,21 @@ if TYPE_CHECKING:
 class QuizAccessor(BaseAccessor):
     async def connect(self, app: "Application") -> None:
         self.logger.info("Подключаем QuizAccessor")
-        await self.upsert_theme(
-            id_=1, title="default", description="default theme"
-        )
-        for question in default_questions:
-            await self.upsert_question(
-                id_=question.id,
-                title=question.title,
-                theme_id=question.theme_id,
-                answers=question.answers,
+
+        if await self.get_theme_by_id(1) is None:
+            self.logger.info("Создаем базовую тему.")
+            await self.create_theme(
+                title="default", description="default theme"
             )
 
-    async def upsert_theme(
-        self, title: str, description: str | None = None, id_: int | None = None
-    ) -> Theme | None:
-        theme_data = {
-            "id": id_,
-            "title": title,
-            "description": description,
-        }
-
-        stmt = insert(Theme).values(theme_data)
-        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
-
-        async with self.app.database.session() as session:
-            await session.execute(stmt)
-            await session.commit()
-            self.logger.info("Создана новая тема из-за её отстутствия")
-        return None
-
-    async def upsert_question(
-        self, id_: int, title: str, theme_id: int, answers: Iterable[Answer]
-    ):
-        async with self.app.database.session() as session:
-            existing_question = await session.get(Question, id_)
-
-            if existing_question is None:
-                # Если вопроса нет, создаем новый
-                new_question = Question(
-                    id=id_, title=title, theme_id=theme_id, answers=answers
+        if await self.get_question_by_id(1) is None:
+            self.logger.info("Создаем базовые вопросы")
+            for question in default_questions:
+                await self.create_question(
+                    title=question.title,
+                    theme_id=question.theme_id,
+                    answers=question.answers,
                 )
-                session.add(new_question)
-
-            await session.commit()
 
     async def create_theme(
         self, title: str, description: str | None = None
