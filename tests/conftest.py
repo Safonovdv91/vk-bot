@@ -9,14 +9,14 @@ from aiohttp.test_utils import TestClient, loop_context
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
 )
 
 from app.store import Store
 from app.store.database.database import Database
 from app.web.app import Application, setup_app
 from app.web.config import Config
+from tests.fixtures.fixtures_logic import *
+from tests.fixtures.fixtures_quiz import *
 
 
 @pytest.fixture(scope="session")
