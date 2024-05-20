@@ -67,9 +67,8 @@ class TestQuestionAddView:
 
         data = await response.json()
         assert (
-            data.get("message")
-            == "Сумма очков всех ответов должна "
-               "быть равна 100, текущая сумма: 101"
+            data.get("message") == "Сумма очков всех ответов должна "
+            "быть равна 100, текущая сумма: 101"
         )
 
     async def test_empty_title(
