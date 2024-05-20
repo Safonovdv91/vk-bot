@@ -68,7 +68,8 @@ class TestQuestionAddView:
         data = await response.json()
         assert (
             data.get("message")
-            == "Сумма очков всех ответов должна быть равна 100, текущая сумма: 101"
+            == "Сумма очков всех ответов должна "
+               "быть равна 100, текущая сумма: 101"
         )
 
     async def test_empty_title(
@@ -124,6 +125,34 @@ class TestQuestionListView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    async def test_success_no_questions(
+        self, auth_cli: TestClient, theme_1, question_1
+    ) -> None:
+        response = await auth_cli.get(
+            "/quiz.questions_list", params={"theme_id": 1}
+        )
+        assert response.status == 200
+
+        data = await response.json()
+        assert data == {
+            "data": {
+                "questions": [
+                    {
+                        "answers": [
+                            {"id": 1, "score": 43, "title": "Еду"},
+                            {"id": 2, "score": 27, "title": "свадьбу"},
+                            {"id": 3, "score": 15, "title": "природу"},
+                            {"id": 4, "score": 15, "title": "животных"},
+                        ],
+                        "id": 1,
+                        "theme_id": 1,
+                        "title": "Кого или что чаще всего снимает " "фотограф?",
+                    }
+                ]
+            },
+            "status": "ok",
+        }
+
 
 class TestThemeListView:
     async def test_unauthorized(self, cli: TestClient) -> None:
@@ -132,6 +161,38 @@ class TestThemeListView:
 
         data = await response.json()
         assert data["status"] == "unauthorized"
+
+    async def test_success_themes_list_empty(
+        self, auth_cli: TestClient
+    ) -> None:
+        response = await auth_cli.get("/quiz.themes_list")
+        assert response.status == 200
+
+        data = await response.json()
+        assert data == {
+            "status": "ok",
+            "data": {"themes": []},
+        }
+
+    async def test_success_themes_list_default_theme(
+        self, auth_cli: TestClient, theme_1
+    ) -> None:
+        response = await auth_cli.get("/quiz.themes_list")
+        assert response.status == 200
+
+        data = await response.json()
+        assert data == {
+            "status": "ok",
+            "data": {
+                "themes": [
+                    {
+                        "id": theme_1.id,
+                        "title": theme_1.title,
+                        "description": theme_1.description,
+                    }
+                ]
+            },
+        }
 
 
 class TestThemeDeleteByIdView:
