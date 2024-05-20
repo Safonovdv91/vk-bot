@@ -1,7 +1,9 @@
+name: Upload to server
 on:
   push:
     branches:
-      - dev
+      - main
+
   workflow_dispatch:
 
 jobs:

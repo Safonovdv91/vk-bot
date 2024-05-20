@@ -8,8 +8,7 @@ answers1 = [
 ]
 
 question1 = Question(
-    id=1,
-    title="Кого или что чаще всего снимает фотограф?",
+    title="Кого или что чаще всего снимает фотограф!!?",
     theme_id=1,
     answers=answers1,
 )
@@ -20,11 +19,10 @@ answers2 = [
     Answer(title="новосибирск", score=14),
     Answer(title="казань", score=12),
     Answer(title="екатеринбург", score=8),
-    Answer(title="Самара", score=5),
+    Answer(title="Самара", score=15),
 ]
 
 question2 = Question(
-    id=2,
     title="В каком городе России есть метро?",
     theme_id=1,
     answers=answers2,
@@ -40,7 +38,6 @@ answers3 = [
 ]
 
 question3 = Question(
-    id=3,
     title="Кого можно увидеть на огромной льдине?",
     theme_id=1,
     answers=answers3,
