@@ -57,7 +57,7 @@ class ThemeDeleteByIdView(AuthRequiredMixin, View):
     async def delete(self):
         theme_id = self.request.query.get("theme_id")
 
-        theme = await self.store.quizzes.delete_theme_by_id(theme_id)
+        theme = await self.store.quizzes.delete_theme_by_id(int(theme_id))
 
         if theme is None:
             raise HTTPBadRequest(

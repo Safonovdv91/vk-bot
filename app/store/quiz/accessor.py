@@ -97,14 +97,18 @@ class QuizAccessor(BaseAccessor):
 
     async def delete_theme_by_id(self, id_: int) -> Theme | None:
         async with self.app.database.session() as session:
-            theme = await self.get_theme_by_id(id_)
+            theme = await session.get(Theme, id_)
 
             if theme is None:
-                return None
-
-            await session.delete(theme)
-            await session.commit()
-
+                raise HTTPBadRequest(reason="Темы с таким id не существует")
+            try:
+                await session.delete(theme)
+                await session.commit()
+            except sqlalchemy.exc.IntegrityError as exc:
+                raise HTTPConflict(
+                    reason="Нельзя удалить т.к. существуют"
+                    " вопросы принадлежащие теме"
+                ) from exc
         return theme
 
     async def create_question(
