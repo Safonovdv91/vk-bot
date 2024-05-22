@@ -86,7 +86,7 @@ class GameGetByIdView(AuthRequiredMixin, View):
 
 class SettingsGetByIdView(AuthRequiredMixin, View):
     @docs(
-        tags=["Game", "Settings"],
+        tags=["Settings"],
         summary="Получить settings по id",
         description="Отобразить по настройка",
     )
@@ -106,7 +106,7 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 
 class SettingsAddView(AuthRequiredMixin, View):
     @docs(
-        tags=["Game", "Settings"],
+        tags=["Settings"],
         summary="Изменить профиль по ID",
         description="Изменить характеристики игрового профиля",
     )
@@ -133,7 +133,7 @@ class SettingsAddView(AuthRequiredMixin, View):
 
 class PatchSettingsView(AuthRequiredMixin, View):
     @docs(
-        tags=["Game", "Settings"],
+        tags=["Settings"],
         summary="Ищменить настройки профиля игры",
         description="Изменить стандартные настройки игры, создан для удобства",
     )
@@ -165,7 +165,7 @@ class PatchSettingsView(AuthRequiredMixin, View):
 
 class DefaultSettingsView(AuthRequiredMixin, View):
     @docs(
-        tags=["Game", "Settings"],
+        tags=["Settings"],
         summary="Сменить настройки стандартной игры",
         description="Изменить стандартные настройки игры",
     )

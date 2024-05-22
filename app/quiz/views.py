@@ -15,6 +15,7 @@ from app.quiz.schemes import (
     ThemeIdSchema,
     ThemeListQuerySchema,
     ThemeListSchema,
+    ThemeQueryIdSchema,
     ThemeSchema,
 )
 from app.web.app import View
@@ -67,7 +68,7 @@ class ThemeDeleteByIdView(AuthRequiredMixin, View):
         return json_response(
             data={
                 "status": "deleted",
-                "question": ThemeSchema().dump(theme),
+                "theme": ThemeSchema().dump(theme),
             }
         )
 
@@ -123,7 +124,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
 
 class QuestionListView(AuthRequiredMixin, View):
     @docs(tags=["Quiz"], summary="Отобразить список вопросов")
-    @querystring_schema(ThemeIdSchema)
+    @querystring_schema(ThemeQueryIdSchema)
     @response_schema(QuestionListSchema)
     async def get(self):
         theme_id = self.request.query.get("theme_id")
