@@ -9,10 +9,10 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
+from app.game.constants import GameStage
 from app.game.models import (
     Game,
     GameSettings,
-    GameStage,
     Player,
     PlayerAnswerGame,
 )
