@@ -115,13 +115,13 @@ class TestQuestionDeleteByIdView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
-    async def test_delete_question_by_id_409(
+    async def test_delete_question_by_id_success(
         self, auth_cli: TestClient, theme_1, question_1
     ):
         response = await auth_cli.delete(
             "/quiz.questions_delete_by_id", params={"question_id": 1}
         )
-        assert response.status == 409
+        assert response.status == 200
 
 
 class TestQuestionListView:
@@ -132,7 +132,7 @@ class TestQuestionListView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
-    async def test_success_one_questio(
+    async def test_success_one_question(
         self, auth_cli: TestClient, theme_1, question_1
     ) -> None:
         response = await auth_cli.get(
