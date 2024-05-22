@@ -394,7 +394,7 @@ class GameSettingsAccessor(BaseAccessor):
                 game_settings = result.scalar_one_or_none()
 
                 if not game_settings:
-                    raise HTTPBadRequest(reason="Такая тема не найдена")
+                    raise HTTPBadRequest(reason="Такой профиль не найден")
 
                 stmt = update(GameSettings).where(GameSettings.id == id_)
 
