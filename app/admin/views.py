@@ -1,5 +1,5 @@
 from aiohttp.web_exceptions import HTTPForbidden
-from aiohttp_apispec import request_schema, response_schema
+from aiohttp_apispec import request_schema, response_schema, docs
 from aiohttp_session import new_session
 
 from app.admin.models import AdminModel
@@ -10,6 +10,10 @@ from app.web.utils import json_response
 
 
 class AdminLoginView(View):
+    @docs(
+        tags=["Auth"],
+        summary="Аунтефикация пользователя",
+    )
     @request_schema(AdminSchema)
     @response_schema(AdminSchema, 200)
     async def post(self):
@@ -25,6 +29,10 @@ class AdminLoginView(View):
 
 
 class AdminCurrentView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Auth"],
+        summary="Идентификация пользователя",
+    )
     @response_schema(AdminSchema, 200)
     async def get(self):
         current_user = await self.store.admins.get_by_email(
