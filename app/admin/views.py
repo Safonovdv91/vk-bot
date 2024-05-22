@@ -1,5 +1,5 @@
 from aiohttp.web_exceptions import HTTPForbidden
-from aiohttp_apispec import request_schema, response_schema, docs
+from aiohttp_apispec import docs, request_schema, response_schema
 from aiohttp_session import new_session
 
 from app.admin.models import AdminModel
