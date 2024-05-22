@@ -35,7 +35,10 @@ class ThemeListSchema(Schema):
 
 
 class ThemeIdSchema(Schema):
-    theme_id = fields.Int(validate=validate.Range(min=1))
+    theme_id = fields.Int(required=True, validate=validate.Range(min=1))
+
+
+class ThemeQueryIdSchema(ThemeIdSchema):
     offset = fields.Int(required=False, validate=validate.Range(min=1))
     limit = fields.Int(required=False, validate=validate.Range(min=1))
 
