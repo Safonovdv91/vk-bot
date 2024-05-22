@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.game.models import Game
 from app.quiz.models import (
     Answer,
     Question,
@@ -80,3 +81,13 @@ async def question_2(db_sessionmaker, theme_1: Theme) -> Question:
         await session.commit()
 
     return question
+
+
+@pytest.fixture
+async def game1(db_sessionmaker, theme_1: Theme, question_1) -> Question:
+    game = Game()
+    async with db_sessionmaker() as session:
+        session.add(game)
+        await session.commit()
+
+    return game
