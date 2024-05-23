@@ -417,12 +417,8 @@ class GameSettingsAccessor(BaseAccessor):
                     stmt = stmt.values(
                         time_to_registration=int(time_to_registration)
                     )
-                if min_count_gamers:
-                    stmt = stmt.values(min_count_gamers=int(min_count_gamers))
-                if max_count_gamers:
-                    stmt = stmt.values(max_count_gamers=int(max_count_gamers))
                 if time_to_answer:
-                    stmt = stmt.values(time_to_answer=int(time_to_answer))
+                    stmt.values(time_to_answer=int(time_to_answer))
 
                 await session.execute(stmt)
                 await session.commit()

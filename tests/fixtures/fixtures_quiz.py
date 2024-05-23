@@ -91,7 +91,7 @@ async def game_settings(
     game_settings = GameSettings(
         profile_name="test",
         time_to_registration=30,
-        min_count_gamers=1,
+        min_count_gamers=2,
         max_count_gamers=6,
         time_to_answer=15,
     )
