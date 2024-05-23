@@ -123,6 +123,7 @@ class TestQuestionDeleteByIdView:
         )
         assert response.status == 200
 
+
     async def test_delete_question_by_id_bad_id(
         self, auth_cli: TestClient, theme_1, question_1
     ):
@@ -243,6 +244,7 @@ class TestThemeDeleteByIdView:
             },
             "status": "ok",
         }
+
 
     async def test_delete_theme_by_409(
         self, auth_cli: TestClient, theme_1, question_1, game1

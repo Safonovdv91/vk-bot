@@ -187,6 +187,7 @@ async def game_running(
         state=GameStage.WAITING_ANSWER,
         profile_id=game_settings.id,
     )
+
     async with db_sessionmaker() as session:
         session.add(game)
         await session.commit()
