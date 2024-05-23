@@ -124,6 +124,21 @@ class TestQuestionDeleteByIdView:
         assert response.status == 200
 
 
+    async def test_delete_question_by_id_bad_id(
+        self, auth_cli: TestClient, theme_1, question_1
+    ):
+        response = await auth_cli.delete(
+            "/quiz.questions_delete_by_id", params={"question_id": "sj"}
+        )
+        assert response.status == 400
+
+    async def test_question_by_id_conflict(self, auth_cli: TestClient, game1):
+        response = await auth_cli.delete(
+            "/quiz.questions_delete_by_id", params={"question_id": 1}
+        )
+        assert response.status == 409
+
+
 class TestQuestionListView:
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/quiz.questions_list", params={"theme_id": 1})
@@ -230,9 +245,14 @@ class TestThemeDeleteByIdView:
             "status": "ok",
         }
 
-    async def test_delete_theme_by_409(self, auth_cli: TestClient, question_1):
-        response = await auth_cli.delete("/quiz.themes_delete_by_id")
-        assert response.status == 400
+
+    async def test_delete_theme_by_409(
+        self, auth_cli: TestClient, theme_1, question_1, game1
+    ):
+        response = await auth_cli.delete(
+            "/quiz.themes_delete_by_id", params={"theme_id": 1}
+        )
+        assert response.status == 409
 
 
 class TestThemeAddView:
@@ -242,3 +262,20 @@ class TestThemeAddView:
 
         data = await response.json()
         assert data["status"] == "unauthorized"
+
+    async def test_success(self, auth_cli: TestClient) -> None:
+        response = await auth_cli.post(
+            "/quiz.themes_add",
+            json={"title": "Новая тема", "description": "Какое-то описание"},
+        )
+        assert response.status == 200
+
+        data = await response.json()
+        assert data == {
+            "data": {
+                "description": "Какое-то описание",
+                "id": 1,
+                "title": "Новая тема",
+            },
+            "status": "ok",
+        }
