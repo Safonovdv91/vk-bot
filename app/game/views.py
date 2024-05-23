@@ -87,8 +87,7 @@ class GameGetByIdView(AuthRequiredMixin, View):
 class SettingsGetByIdView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
-        summary="Получить settings по id",
-        description="Отобразить по настройка",
+        summary="Получить настройки профиля по id",
     )
     @querystring_schema(SettingsIdSchema)
     @response_schema(GameSettingsSchema)
@@ -107,12 +106,12 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 class SettingsAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
-        summary="Изменить профиль по ID",
+        summary="Изменить профиль игры по ID",
         description="Изменить характеристики игрового профиля",
     )
     @request_schema(GameSettingsSchema)
     @response_schema(GameSettingsSchema)
-    async def post(self):
+    async def patch(self):
         game_settings = GameSettings(
             profile_name=self.data.get("profile_name"),
             description=self.data.get("description"),
@@ -134,7 +133,7 @@ class SettingsAddView(AuthRequiredMixin, View):
 class PatchSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
-        summary="Ищменить настройки профиля игры",
+        summary="Изменить настройки профиля игры",
         description="Изменить стандартные настройки игры, создан для удобства",
     )
     @querystring_schema(GameSettingsIdSchema)
