@@ -241,7 +241,7 @@ class TestChangeProfile:
             },
         )
 
-        assert response.status == 400, f"response = {response}"
+        assert response.status == 200, f"response = {response}"
 
         data = await response.json()
         assert data == {"data": {}, "status": "ok"}
@@ -278,13 +278,9 @@ class TestChangeProfile:
         assert response.status == 400, f"response = {response}"
 
         data = await response.json()
-        assert (
-            data
-            == {
-                "data": {},
-                "message": "Максимальное кол-во игроков должно"
-                " быть больше минимального(2)",
-                "status": "bad_request",
-            }
-            != {"data": {}, "status": "ok"}
-        )
+        assert data == {
+            "data": {},
+            "message": "Максимальное кол-во игроков должно быть"
+            " больше минимального (2)",
+            "status": "bad_request",
+        }

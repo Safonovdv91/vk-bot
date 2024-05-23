@@ -106,12 +106,12 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 class SettingsAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
-        summary="Изменить профиль игры по ID",
+        summary="Добавить игровой профиль",
         description="Изменить характеристики игрового профиля",
     )
     @request_schema(GameSettingsSchema)
     @response_schema(GameSettingsSchema)
-    async def patch(self):
+    async def add(self):
         game_settings = GameSettings(
             profile_name=self.data.get("profile_name"),
             description=self.data.get("description"),

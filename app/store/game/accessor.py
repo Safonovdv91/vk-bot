@@ -398,27 +398,23 @@ class GameSettingsAccessor(BaseAccessor):
                     raise HTTPBadRequest(reason="Такой профиль не найден")
 
                 stmt = update(GameSettings).where(GameSettings.id == id_)
-
-                if (
-                    min_count_gamers
-                    and max_count_gamers
-                    and int(min_count_gamers) > int(max_count_gamers)
-                ):
-                    raise HTTPBadRequest(
-                        reason="Минимальное кол-во игроков должно "
-                        "быть менньше максимального"
-                    )
+                check_min_max(game_settings, min_count_gamers, max_count_gamers)
 
                 if profile_name:
                     stmt = stmt.values(profile_name=profile_name)
                 if description:
                     stmt = stmt.values(description=description)
+
                 if time_to_registration:
                     stmt = stmt.values(
                         time_to_registration=int(time_to_registration)
                     )
                 if time_to_answer:
-                    stmt.values(time_to_answer=int(time_to_answer))
+                    stmt = stmt.values(time_to_answer=int(time_to_answer))
+                if min_count_gamers:
+                    stmt = stmt.values(min_count_gamers=int(min_count_gamers))
+                if max_count_gamers:
+                    stmt = stmt.values(max_count_gamers=int(max_count_gamers))
 
                 await session.execute(stmt)
                 await session.commit()
@@ -435,3 +431,31 @@ class GameSettingsAccessor(BaseAccessor):
                     reason="Не удалось обновить вопрос из-за"
                     " проблемы целостности данных"
                 ) from exc
+
+
+def check_min_max(
+    game_settings: GameSettings, min_count_gamers, max_count_gamers
+):
+    if min_count_gamers and max_count_gamers:
+        if int(min_count_gamers) > int(max_count_gamers):
+            raise HTTPBadRequest(
+                reason="Минимальное кол-во игроков должно "
+                "быть менньше максимального!!!"
+            )
+        return
+    if (
+        min_count_gamers
+        and int(min_count_gamers) > game_settings.max_count_gamers
+    ):
+        raise HTTPBadRequest(
+            reason=f"Минимальное кол-во игроков должно "
+            f"быть меньше максимального {game_settings.max_count_gamers}"
+        )
+
+    if max_count_gamers and game_settings.min_count_gamers > int(
+        max_count_gamers
+    ):
+        raise HTTPBadRequest(
+            reason=f"Максимальное кол-во игроков должно "
+            f"быть больше минимального ({game_settings.min_count_gamers})"
+        )
