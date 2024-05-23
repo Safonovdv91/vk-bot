@@ -188,6 +188,7 @@ class GameAccessor(BaseAccessor):
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
                     joinedload(Game.profile),
+                    joinedload(Game.player_answers_games),
                 )
             )
         return result.unique().scalar_one_or_none()
