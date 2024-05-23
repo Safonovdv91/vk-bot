@@ -13,7 +13,7 @@ session:
   key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
 admin:
   email: admin@admin.com
-  password: admin
+  password: admin_vk
 database:
   host: db
   port: 5432
