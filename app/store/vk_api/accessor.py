@@ -90,6 +90,7 @@ class VkApiAccessor(BaseAccessor):
             return None
 
     async def _get_long_poll_service(self) -> None:
+        self.logger.info("Получаем ключ лонгполинга")
         async with self.session.get(
             self._build_query(
                 host=self._API_PATH,
@@ -104,6 +105,7 @@ class VkApiAccessor(BaseAccessor):
             self.key = data["key"]
             self.server = data["server"]
             self.ts = data["ts"]
+        self.logger.info("Ключ равен: %s", self.key)
 
     async def poll(self):
         async with self.session.get(
@@ -118,13 +120,17 @@ class VkApiAccessor(BaseAccessor):
                 },
             )
         ) as response:
-            # todo багфикс если приходит не json
             if response.headers.get("Content-Type") != "application/json":
                 self.logger.error("От вк пришла дичь")
                 await asyncio.sleep(10)
                 return
 
             data = await response.json()
+            self.logger.info("data: %s", data)
+
+            if data == {"failed": 2} or data == {"failed": 3}:
+                await self._get_long_poll_service()
+
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
