@@ -13,9 +13,9 @@ session:
   key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
 admin:
   email: admin@admin.com
-  password: admin
+  password: admin_vk
 database:
-  host: localhost
+  host: db
   port: 5432
   user: vk_user
   password: vk_pass
@@ -23,3 +23,5 @@ database:
 bot:
   token: vk1.a.N-LUKJ9cCDWHon_xSQ2BAu1K5hjovrP-1CfmZ1O393fcrvRsDfp0-mxZ9BN8F_wCMOTHy0TY71UBUmhKfYP2cPbN4M2szIGZcImr4NjHcC54gO6qXAaNFioxRVlr2O7eSdt8omUAkz3mrwvPCazCwe6l5sZw4m5MZL33sJB04pX4ioCVsiIQPBCowI-9qhEKywr2JT4GoxY9XLINrP6VAA
   group_id: 225776298
+#  token: vk1.a.UEASNzixaQkV4jbzXay3wqdSy8heT3yXWQhU2_dimhNpejzCqBfzkc5Y_vVJklANuzJOm_2z8q2Fqk2A-iPU8Ft1o7xvuvIejSbaCcuH96tpda0Qii8UdKXHPgWX3imrG1uhaJgRzCEvl9-E2Ae4ibdiIPao6w7JWfaT39WJtaeFGmEJKYSWvtJCW8nvqQBA-0M61zyZFa0tddTBCuXrpA
+#  group_id: 218897004

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 import typing
@@ -117,8 +118,13 @@ class VkApiAccessor(BaseAccessor):
                 },
             )
         ) as response:
-            data = await response.json()
+            # todo багфикс если приходит не json
+            if response.headers.get("Content-Type") != "application/json":
+                self.logger.error("От вк пришла дичь")
+                await asyncio.sleep(10)
+                return
 
+            data = await response.json()
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
