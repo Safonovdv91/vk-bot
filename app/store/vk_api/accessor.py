@@ -48,6 +48,22 @@ class VkApiAccessor(BaseAccessor):
         self.ts: int | None = None
         self.logger = getLogger("VkApiAccessor")
 
+    async def worker(self, queue):
+        """Воркер получения сообщений от ВК, сортирует их по событиям
+        или сообщениям а после обрабатывает
+        :param queue: Очередь сообщений
+        """
+        while True:
+            task = await queue.get()
+
+            if isinstance(task, MessageUpdate):
+                await self.app.store.bots_manager.handle_updates([task])
+
+            elif isinstance(task, EventUpdate):
+                await self.app.store.bots_manager.handle_events([task])
+
+            queue.task_done()
+
     async def connect(self, app: "Application") -> None:
         self.session = ClientSession(connector=TCPConnector(verify_ssl=False))
 
@@ -137,7 +153,7 @@ class VkApiAccessor(BaseAccessor):
             long_poll_response: LongPollResponse = (
                 LongPollResponse.Schema().load(data)
             )
-            messages, events = [], []
+            queue_messages = asyncio.Queue()
 
             for update in long_poll_response.updates:
                 if update.type == "message_new":
@@ -154,7 +170,8 @@ class VkApiAccessor(BaseAccessor):
                             ),
                         ),
                     )
-                    messages.append(new_msg)
+                    await queue_messages.put(new_msg)
+
                 elif update.type == "message_event":
                     new_event = EventUpdate(
                         event_id=update.event_id,
@@ -170,11 +187,17 @@ class VkApiAccessor(BaseAccessor):
                             ),
                         ),
                     )
-                    events.append(new_event)
+                    await queue_messages.put(new_event)
 
             try:
-                await self.app.store.bots_manager.handle_events(events)
-                await self.app.store.bots_manager.handle_updates(messages)
+                workers = [
+                    asyncio.create_task(self.worker(queue_messages))
+                    for i in range(4)
+                ]
+                await queue_messages.join()
+                for w in workers:
+                    w.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
 
             except Exception as e:
                 self.logger.exception(
