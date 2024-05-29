@@ -34,7 +34,7 @@ class GameSettings(BaseModel):
         if self.description:
             return (
                 f"Профиль № {self.id} - {self.profile_name}\n"
-                f"### [{self.description} ]\n#####\n"
+                f"#### {self.description}\n#####\n"
                 f" Время на регистрацию: {self.time_to_registration} секунд\n"
                 f" Время на ответ: {self.time_to_answer} секунд "
             )
