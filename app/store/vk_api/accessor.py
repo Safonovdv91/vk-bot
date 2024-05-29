@@ -48,6 +48,22 @@ class VkApiAccessor(BaseAccessor):
         self.ts: int | None = None
         self.logger = getLogger("VkApiAccessor")
 
+    async def worker(self, queue):
+        """Воркер получения сообщений от ВК, сортирует их по событиям
+        или сообщениям а после обрабатывает
+        :param queue: Очередь сообщений
+        """
+        while True:
+            task = await queue.get()
+
+            if isinstance(task, MessageUpdate):
+                await self.app.store.bots_manager.handle_updates([task])
+
+            elif isinstance(task, EventUpdate):
+                await self.app.store.bots_manager.handle_events([task])
+
+            queue.task_done()
+
     async def connect(self, app: "Application") -> None:
         self.session = ClientSession(connector=TCPConnector(verify_ssl=False))
 
@@ -90,6 +106,7 @@ class VkApiAccessor(BaseAccessor):
             return None
 
     async def _get_long_poll_service(self) -> None:
+        self.logger.info("Получаем ключ лонгполинга")
         async with self.session.get(
             self._build_query(
                 host=self._API_PATH,
@@ -104,6 +121,7 @@ class VkApiAccessor(BaseAccessor):
             self.key = data["key"]
             self.server = data["server"]
             self.ts = data["ts"]
+        self.logger.info("Ключ равен: %s", self.key)
 
     async def poll(self):
         async with self.session.get(
@@ -118,20 +136,24 @@ class VkApiAccessor(BaseAccessor):
                 },
             )
         ) as response:
-            # todo багфикс если приходит не json
             if response.headers.get("Content-Type") != "application/json":
                 self.logger.error("От вк пришла дичь")
                 await asyncio.sleep(10)
                 return
 
             data = await response.json()
+            self.logger.info("data: %s", data)
+
+            if data == {"failed": 2} or data == {"failed": 3}:
+                await self._get_long_poll_service()
+
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
             long_poll_response: LongPollResponse = (
                 LongPollResponse.Schema().load(data)
             )
-            messages, events = [], []
+            queue_messages = asyncio.Queue()
 
             for update in long_poll_response.updates:
                 if update.type == "message_new":
@@ -148,7 +170,8 @@ class VkApiAccessor(BaseAccessor):
                             ),
                         ),
                     )
-                    messages.append(new_msg)
+                    await queue_messages.put(new_msg)
+
                 elif update.type == "message_event":
                     new_event = EventUpdate(
                         event_id=update.event_id,
@@ -164,11 +187,17 @@ class VkApiAccessor(BaseAccessor):
                             ),
                         ),
                     )
-                    events.append(new_event)
+                    await queue_messages.put(new_event)
 
             try:
-                await self.app.store.bots_manager.handle_events(events)
-                await self.app.store.bots_manager.handle_updates(messages)
+                workers = [
+                    asyncio.create_task(self.worker(queue_messages))
+                    for i in range(4)
+                ]
+                await queue_messages.join()
+                for w in workers:
+                    w.cancel()
+                await asyncio.gather(*workers, return_exceptions=True)
 
             except Exception as e:
                 self.logger.exception(
