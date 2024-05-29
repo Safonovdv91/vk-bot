@@ -121,11 +121,18 @@ class GameLogic:
         ).get()
 
         text = f"{self.question.title} \n"
+        text += "________ \n"
 
-        for k, v in self.answers.items():
-            _ = "X" * len(k)
-            text += f"| {_} |   ({len(k)})  = {v.score} очков\n"
+        for answer in self.game_model.question.answers:
+            if answer.title.lower() not in self.answers:
+                text += f"| {answer.title} | = {answer.score} очков\n"
+            else:
+                _ = "X" * len(answer.title)
+                text += (
+                    f"| {_} |   ({len(answer.title)})  = {answer.score} очков\n"
+                )
 
+        text += "________ \n"
         await keyboard_start_game.add_line([btn_ready_to_answer])
         await self.app.store.vk_api.send_message(
             peer_id=self.conversation_id,
@@ -248,7 +255,7 @@ class GameLogic:
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
-                    response_text="Вы и не были зареганы!",
+                    response_text="Вы не зарегестрированы!",
                 )
 
         else:
@@ -256,7 +263,7 @@ class GameLogic:
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
-                response_text="Набор игроков уже закончился",
+                response_text="Играть могут только зарегестрированные игрроки",
             )
 
     async def waiting_ready_to_answer(self, event_id: int, user_id: int):
@@ -359,7 +366,7 @@ class GameLogic:
                     peer_id=self.conversation_id,
                     text=f"Игрок: {self.answered_player} ответил правильно! \n"
                     f" Получил {self.answers.pop(answer.lower()).score}"
-                    f" очков! \n ---------------",
+                    f" очков! \n",
                 )
 
                 if len(self.answers.keys()) == 0:
