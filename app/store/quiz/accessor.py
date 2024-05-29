@@ -8,7 +8,7 @@ from aiohttp.web_exceptions import (
     HTTPNotFound,
     HTTPServiceUnavailable,
 )
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -97,14 +97,18 @@ class QuizAccessor(BaseAccessor):
 
     async def delete_theme_by_id(self, id_: int) -> Theme | None:
         async with self.app.database.session() as session:
-            theme = await self.get_theme_by_id(id_)
+            theme = await session.get(Theme, id_)
 
             if theme is None:
-                return None
-
-            await session.delete(theme)
-            await session.commit()
-
+                raise HTTPBadRequest(reason="Темы с таким id не существует")
+            try:
+                await session.delete(theme)
+                await session.commit()
+            except sqlalchemy.exc.IntegrityError as exc:
+                raise HTTPConflict(
+                    reason="Нельзя удалить т.к. существуют"
+                    " вопросы принадлежащие теме"
+                ) from exc
         return theme
 
     async def create_question(
@@ -189,17 +193,27 @@ class QuizAccessor(BaseAccessor):
     async def delete_question_by_id(self, id_: int) -> Question | None:
         async with self.app.database.session() as session:
             try:
-                async with session.begin():
-                    question = (
-                        await session.execute(
-                            select(Question).where(Question.id == id_)
-                        )
-                    ).scalar_one_or_none()
+                question = (
+                    await session.execute(
+                        select(Question)
+                        .where(Question.id == id_)
+                        .options(joinedload(Question.answers))
+                    )
+                ).unique()
+                question = question.scalar_one_or_none()
 
-                    if question is None:
-                        raise HTTPBadRequest
+                if question is None:
+                    raise HTTPBadRequest(
+                        reason="Вопроса с таки id не существует,"
+                        " или он был уже удален"
+                    )
+                stmt = delete(Answer).where(Answer.question_id == id_)
+                await session.execute(stmt)
 
-                    await session.delete(question)
+                stmt = delete(Question).where(Question.id == id_)
+                await session.execute(stmt)
+
+                await session.commit()
 
             except sqlalchemy.exc.IntegrityError as exc:
                 await session.rollback()
@@ -212,6 +226,7 @@ class QuizAccessor(BaseAccessor):
                 raise HTTPServiceUnavailable from exc
 
             else:
+                self.logger.info("Вопрос с %s успешно удален", question.id)
                 return question
 
     async def update_question(
