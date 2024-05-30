@@ -129,16 +129,23 @@ class GameLogic:
         )
         await self._send_answers_list()
 
-    async def _send_answers_list(self):
+    async def _send_answers_list(self, is_close_answers: bool = True):
         text = "________ \n"
-        for answer in self.game_model.question.answers:
-            if answer.title.lower() not in self.answers:
+
+        if is_close_answers:
+            for answer in self.game_model.question.answers:
+                if answer.title.lower() not in self.answers:
+                    text += f"| {answer.title} | = {answer.score} очков\n"
+                else:
+                    _ = "X" * len(answer.title)
+                    text += (
+                        f"| {_} | ({len(answer.title)})  "
+                        f"= {answer.score} очков\n"
+                    )
+
+        else:
+            for answer in self.game_model.question.answers:
                 text += f"| {answer.title} | = {answer.score} очков\n"
-            else:
-                _ = "X" * len(answer.title)
-                text += (
-                    f"| {_} |   ({len(answer.title)})  = {answer.score} очков\n"
-                )
 
         text += "________ \n"
         await self.app.store.vk_api.send_message(
@@ -415,7 +422,7 @@ class GameLogic:
                 )
 
             text += "\n\n Всем спасибо за игру!"
-            await self._send_answers_list()
+            await self._send_answers_list(is_close_answers=False)
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
                 text=text,
