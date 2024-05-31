@@ -254,7 +254,9 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Успешная регистрация!",
                 )
-                pinned_text = "Игроки: \n"
+                pinned_text = (
+                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
+                )
 
                 for v in self.players.values():
                     pinned_text += f"-- {v.last_name} {v.first_name} \n"
@@ -287,7 +289,9 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Вы отменили регистрацию на игру!",
                 )
-                pinned_text = "Игроки: \n"
+                pinned_text = (
+                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
+                )
 
                 for v in self.players.values():
                     pinned_text += f"-- {v.last_name} {v.first_name} \n"
