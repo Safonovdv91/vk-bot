@@ -145,6 +145,7 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info("data: %s", data)
 
             if data == {"failed": 2} or data == {"failed": 3}:
+                self.logger.error("Необходимо обновить ключ LongPoll")
                 await self._get_long_poll_service()
 
             if data.get("ts") is not None:
@@ -206,23 +207,31 @@ class VkApiAccessor(BaseAccessor):
 
     async def send_message(
         self, peer_id: int, text: str, keyboard: str | None = None
-    ) -> None:
+    ) -> int:
         """Выслать сообщение
         :param keyboard: Строкове представление клавиатуры
         :param text: Текст сообщения
         :param peer_id: id беседы в которую отправить сообщение
-        :return:
+        :return: Воззвращает id сообщения в беседе.
         """
         params = {
             "random_id": random.randint(1, 2**32),
-            "peer_id": peer_id,
+            "peer_ids": peer_id,
             "message": text,
         }
 
         if keyboard:
             params["keyboard"] = keyboard
 
-        await self._send_request(VkMessagesMethods.send, params)
+        response = await self._send_request(VkMessagesMethods.send, params)
+        response = response.get("response")
+        try:
+            conversation_message_id: int = response[0][
+                "conversation_message_id"
+            ]
+        except KeyError:
+            self.logger.exception("В отправленном сообщении нет id")
+        return conversation_message_id
 
     async def get_vk_user(self, user_id):
         params = {
