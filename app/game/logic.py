@@ -23,8 +23,9 @@ class GameLogic:
         self.app = app
         self.logger = getLogger("BotManager")
         self.background_tasks = set()
-
         self.game_model = game_model
+
+        self.pinned_message_id = self.game_model.pinned_conversation_message_id
         self.game_id = game_model.id
         self.question_id: game_model.question_id
         self.players_list = game_model.players  # Список игроков
@@ -180,6 +181,18 @@ class GameLogic:
                 f" Режим игры :\n{self.game_model.profile}\n",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
+
+            self.pinned_message_id = await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text="Зарегистриованные игроки:",
+            )
+            await self.app.store.game_accessor.change_pinned_message(
+                game_id=self.game_id, id_pinned_message=self.pinned_message_id
+            )
+            await self.app.store.vk_api.pin_message(
+                peer_id=self.conversation_id, message_id=self.pinned_message_id
+            )
+
             self.game_state = GameStage.REGISTRATION_GAMERS
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
@@ -207,11 +220,13 @@ class GameLogic:
                 )
 
                 if player is None:
-                    vk_user = await self.app.store.vk_api.get_vk_user(user_id)
+                    player: VkUser = await self.app.store.vk_api.get_vk_user(
+                        user_id
+                    )
                     await self.app.store.game_accessor.add_player(
                         game_id=self.game_id,
-                        vk_user_id=vk_user.id,
-                        name=f"{vk_user.last_name} {vk_user.first_name}",
+                        vk_user_id=player.id,
+                        name=f"{player.last_name} {player.first_name}",
                     )
                 else:
                     await self.app.store.game_accessor.add_player(
@@ -239,6 +254,16 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Успешная регистрация!",
                 )
+                pinned_text = "Игроки: \n"
+
+                for v in self.players.values():
+                    pinned_text += f"-- {v.last_name} {v.first_name} \n"
+
+                await self.app.store.vk_api.edit_message(
+                    peer_id=self.conversation_id,
+                    conversation_message_id=self.pinned_message_id,
+                    text=pinned_text,
+                )
 
             else:
                 await self.app.store.vk_api.send_event_answer(
@@ -261,6 +286,16 @@ class GameLogic:
                     peer_id=self.conversation_id,
                     user_id=user_id,
                     response_text="Вы отменили регистрацию на игру!",
+                )
+                pinned_text = "Игроки: \n"
+
+                for v in self.players.values():
+                    pinned_text += f"-- {v.last_name} {v.first_name} \n"
+
+                await self.app.store.vk_api.edit_message(
+                    peer_id=self.conversation_id,
+                    conversation_message_id=self.pinned_message_id,
+                    text=pinned_text,
                 )
 
             else:
@@ -416,6 +451,7 @@ class GameLogic:
                 game_id=self.game_id
             )
             text = "Таблица победитей: \n 🏆"
+
             for player_name, player_score in players_scores:
                 text += " {:<15} :{:<5} очков\n".format(
                     player_name, player_score
@@ -427,6 +463,9 @@ class GameLogic:
                 peer_id=self.conversation_id,
                 text=text,
                 keyboard=await VkKeyboard().get_keyboard(),
+            )
+            await self.app.store.vk_api.unpin_message(
+                peer_id=self.conversation_id
             )
             return True
 
@@ -443,6 +482,9 @@ class GameLogic:
                 peer_id=self.conversation_id,
                 text="Игра отменена!",
                 keyboard=await keyboard_empty.get_keyboard(),
+            )
+            await self.app.store.vk_api.unpin_message(
+                peer_id=self.conversation_id
             )
             return True
 
