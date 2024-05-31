@@ -309,7 +309,8 @@ class VkApiAccessor(BaseAccessor):
             • user_id — для личных чатов.
             • group_id — для чатов с сообществом.
             • 2 000 000 000 + id_чата — для чатов.
-        :param message_id: Conversation message id: Порядковый номер сообщения в чате
+        :param message_id: Conversation message id: Порядковый номер сообщения
+         в чате
         :param reaction_id: Номер реакции
         :return:
         """
