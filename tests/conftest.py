@@ -29,7 +29,8 @@ def event_loop() -> Iterator[None]:
 def application() -> Application:
     app = setup_app(
         config_path=os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), "config_tests.yaml"
+            os.path.abspath(os.path.dirname(__file__)),
+            "../etc/config_tests.yaml",
         )
     )
     app.on_startup.clear()
