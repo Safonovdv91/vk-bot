@@ -226,12 +226,11 @@ class VkApiAccessor(BaseAccessor):
         response = await self._send_request(VkMessagesMethods.send, params)
         response = response.get("response")
         try:
-            conversation_message_id: int = response[0][
+            return response[0][
                 "conversation_message_id"
             ]
         except KeyError:
             self.logger.exception("В отправленном сообщении нет id")
-        return conversation_message_id
 
     async def get_vk_user(self, user_id):
         params = {
