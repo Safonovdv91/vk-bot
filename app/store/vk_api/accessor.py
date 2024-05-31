@@ -226,9 +226,7 @@ class VkApiAccessor(BaseAccessor):
         response = await self._send_request(VkMessagesMethods.send, params)
         response = response.get("response")
         try:
-            return response[0][
-                "conversation_message_id"
-            ]
+            return response[0]["conversation_message_id"]
         except KeyError:
             self.logger.exception("В отправленном сообщении нет id")
 
@@ -304,3 +302,20 @@ class VkApiAccessor(BaseAccessor):
             "peer_id": peer_id,
         }
         await self._send_request(VkMessagesMethods.send_event_answer, params)
+
+    async def send_reaction(self, peer_id, cmid, reaction_id=5):
+        """Отправка рекации на сообщение
+        :param peer_id:peer_id переписки:
+            • user_id — для личных чатов.
+            • group_id — для чатов с сообществом.
+            • 2 000 000 000 + id_чата — для чатов.
+        :param cmid: Conversation message id: Порядковый номер сообщения в чате
+        :param reaction_id: Номер реакции
+        :return:
+        """
+        params = {
+            "cmid": cmid,
+            "reaction_id": reaction_id,
+            "peer_id": peer_id,
+        }
+        await self._send_request(VkMessagesMethods.send_reaction, params)
