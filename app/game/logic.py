@@ -462,7 +462,6 @@ class GameLogic:
                 )
 
             text += "\n\n Всем спасибо за игру!"
-            await self._send_answers_list(is_close_answers=False)
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
                 text=text,
