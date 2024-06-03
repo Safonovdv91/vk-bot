@@ -145,6 +145,7 @@ class VkApiAccessor(BaseAccessor):
             self.logger.info("data: %s", data)
 
             if data == {"failed": 2} or data == {"failed": 3}:
+                self.logger.error("Необходимо обновить ключ LongPoll")
                 await self._get_long_poll_service()
 
             if data.get("ts") is not None:
@@ -206,23 +207,28 @@ class VkApiAccessor(BaseAccessor):
 
     async def send_message(
         self, peer_id: int, text: str, keyboard: str | None = None
-    ) -> None:
+    ) -> int:
         """Выслать сообщение
         :param keyboard: Строкове представление клавиатуры
         :param text: Текст сообщения
         :param peer_id: id беседы в которую отправить сообщение
-        :return:
+        :return: Воззвращает id сообщения в беседе.
         """
         params = {
             "random_id": random.randint(1, 2**32),
-            "peer_id": peer_id,
+            "peer_ids": peer_id,
             "message": text,
         }
 
         if keyboard:
             params["keyboard"] = keyboard
 
-        await self._send_request(VkMessagesMethods.send, params)
+        response = await self._send_request(VkMessagesMethods.send, params)
+        response = response.get("response")
+        try:
+            return response[0]["conversation_message_id"]
+        except KeyError:
+            self.logger.exception("В отправленном сообщении нет id")
 
     async def get_vk_user(self, user_id):
         params = {
@@ -296,3 +302,21 @@ class VkApiAccessor(BaseAccessor):
             "peer_id": peer_id,
         }
         await self._send_request(VkMessagesMethods.send_event_answer, params)
+
+    async def send_reaction(self, peer_id, message_id: int, reaction_id=5):
+        """Отправка рекации на сообщение
+        :param peer_id:peer_id переписки:
+            • user_id — для личных чатов.
+            • group_id — для чатов с сообществом.
+            • 2 000 000 000 + id_чата — для чатов.
+        :param message_id: Conversation message id: Порядковый номер сообщения
+         в чате
+        :param reaction_id: Номер реакции
+        :return:
+        """
+        params = {
+            "cmid": message_id,
+            "reaction_id": reaction_id,
+            "peer_id": peer_id,
+        }
+        await self._send_request(VkMessagesMethods.send_reaction, params)
