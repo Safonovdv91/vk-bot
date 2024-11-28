@@ -1,7 +1,9 @@
 import asyncio
 from asyncio import Future, Task
+from logging import getLogger
 
 from app.store import Store
+
 
 
 class Poller:
@@ -9,6 +11,8 @@ class Poller:
         self.store = store
         self.is_running = False
         self.poll_task: Task | None = None
+        self.logger = getLogger("Poller")
+
 
     def _done_callback(self, result: Future) -> None:
         if result.exception():
@@ -31,4 +35,8 @@ class Poller:
 
     async def poll(self) -> None:
         while self.is_running:
-            await self.store.vk_api.poll()
+            try:
+                await self.store.vk_api.poll()
+            except Exception as e:
+                self.logger.exception("Poll error, Бот остановлен!", exc_info=e)
+                await self.stop()
