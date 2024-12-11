@@ -5,6 +5,7 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
+from aiohttp_cors import CorsViewMixin
 
 from app.quiz.models import Answer
 from app.quiz.schemes import (
@@ -23,7 +24,7 @@ from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
 
 
-class ThemeAddView(AuthRequiredMixin, View):
+class ThemeAddView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(
         tags=["Quiz"],
         summary="Добавление темы",
@@ -39,7 +40,7 @@ class ThemeAddView(AuthRequiredMixin, View):
         return json_response(data=ThemeSchema().dump(theme))
 
 
-class ThemeListView(AuthRequiredMixin, View):
+class ThemeListView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Отобразить темы")
     @querystring_schema(ThemeListQuerySchema)
     @response_schema(ThemeListSchema)
@@ -51,7 +52,7 @@ class ThemeListView(AuthRequiredMixin, View):
         return json_response(data=ThemeListSchema().dump({"themes": themes}))
 
 
-class ThemeDeleteByIdView(AuthRequiredMixin, View):
+class ThemeDeleteByIdView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Удалить тему по ID")
     @querystring_schema(ThemeIdSchema)
     @response_schema(ThemeSchema)
@@ -73,7 +74,7 @@ class ThemeDeleteByIdView(AuthRequiredMixin, View):
         )
 
 
-class QuestionAddView(AuthRequiredMixin, View):
+class QuestionAddView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Добавить вопрос")
     @request_schema(QuestionSchema)
     @response_schema(QuestionSchema)
@@ -93,7 +94,7 @@ class QuestionAddView(AuthRequiredMixin, View):
         return json_response(data=QuestionSchema().dump(question))
 
 
-class QuestionGetByIdView(AuthRequiredMixin, View):
+class QuestionGetByIdView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Получить вопрос по id")
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
@@ -104,7 +105,7 @@ class QuestionGetByIdView(AuthRequiredMixin, View):
         return json_response(data=QuestionSchema().dump(question))
 
 
-class QuestionDeleteByIdView(AuthRequiredMixin, View):
+class QuestionDeleteByIdView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Удалить вопрос по ID")
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
@@ -122,7 +123,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
         )
 
 
-class QuestionListView(AuthRequiredMixin, View):
+class QuestionListView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(tags=["Quiz"], summary="Отобразить список вопросов")
     @querystring_schema(ThemeQueryIdSchema)
     @response_schema(QuestionListSchema)
@@ -139,7 +140,7 @@ class QuestionListView(AuthRequiredMixin, View):
         )
 
 
-class QuestionPatchById(AuthRequiredMixin, View):
+class QuestionPatchById(AuthRequiredMixin, View, CorsViewMixin):
     @docs(
         tags=["Quiz"],
         summary="Изменить вопрос по ID",

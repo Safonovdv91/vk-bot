@@ -5,14 +5,12 @@ from logging import getLogger
 from app.store import Store
 
 
-
 class Poller:
     def __init__(self, store: Store) -> None:
         self.store = store
         self.is_running = False
         self.poll_task: Task | None = None
         self.logger = getLogger("Poller")
-
 
     def _done_callback(self, result: Future) -> None:
         if result.exception():

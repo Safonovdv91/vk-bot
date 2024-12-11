@@ -1,5 +1,6 @@
 from aiohttp.web_exceptions import HTTPForbidden
 from aiohttp_apispec import docs, request_schema, response_schema
+from aiohttp_cors import CorsViewMixin
 from aiohttp_session import new_session
 
 from app.admin.models import AdminModel
@@ -9,7 +10,7 @@ from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
 
 
-class AdminLoginView(View):
+class AdminLoginView(View, CorsViewMixin):
     @docs(
         tags=["Auth"],
         summary="Аунтефикация пользователя",
@@ -28,7 +29,7 @@ class AdminLoginView(View):
         return json_response(data=admin_data)
 
 
-class AdminCurrentView(AuthRequiredMixin, View):
+class AdminCurrentView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(
         tags=["Auth"],
         summary="Идентификация пользователя",
