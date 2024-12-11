@@ -117,10 +117,21 @@ class VkApiAccessor(BaseAccessor):
                 },
             )
         ) as response:
-            data = (await response.json())["response"]
+            rsp = await response.json()
+
+            if rsp.get("error") is not None:
+                self.logger.error("Не удалось получить ключ лонгполинга")
+                raise KeyError("Не удалось получить ключ лонгполинга")
+
+            data = rsp.get("response")
+            if data is None:
+                self.logger.error("Не удалось получить ключ лонгполинга")
+                raise Exception("Не удалось получить ключ лонгполинга")
+
             self.key = data["key"]
             self.server = data["server"]
             self.ts = data["ts"]
+
         self.logger.info("Ключ равен: %s", self.key)
 
     async def poll(self):
