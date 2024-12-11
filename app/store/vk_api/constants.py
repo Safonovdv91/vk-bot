@@ -8,6 +8,8 @@ class VkMessagesMethods(Enum):
     pin = "messages.pin"
     send = "messages.send"
     get = "users.get"
+    send_reaction = "messages.sendReaction"
+
 
 
 API_PATH = "https://api.vk.com/method/"

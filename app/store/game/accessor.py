@@ -61,6 +61,31 @@ class GameAccessor(BaseAccessor):
 
         return game
 
+    async def change_pinned_message(self, game_id: int, id_pinned_message: int):
+        async with self.app.database.session() as session:
+            stmt = (
+                update(Game)
+                .where(Game.id == game_id)
+                .values(pinned_conversation_message_id=id_pinned_message)
+                .execution_options(synchronize_session="fetch")
+            )
+
+            try:
+                await session.execute(stmt)
+                await session.commit()
+            except (
+                sqlalchemy.exc.IntegrityError,
+                sqlalchemy.exc.ProgrammingError,
+            ) as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await (
+                    session.rollback()
+                )  # Откатываем транзакцию перед повторной попыткой
+                raise HTTPBadRequest(
+                    reason="Не удалось обновить pinned message из-за"
+                    " проблемы целостности данных"
+                ) from exc
+                
     async def add_player(self, game_id: int, vk_user_id: int, name: str):
         player = Player(game_id=game_id, vk_user_id=vk_user_id, name=name)
         async with self.app.database.session() as session:

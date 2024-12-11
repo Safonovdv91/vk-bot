@@ -23,8 +23,8 @@ class GameLogic:
         self.app = app
         self.logger = getLogger("BotManager")
         self.background_tasks = set()
-
         self.game_model = game_model
+        self.pinned_message_id = self.game_model.pinned_conversation_message_id
         self.game_id = game_model.id
         self.question_id: game_model.question_id
         self.players_list = game_model.players  # Список игроков
@@ -121,16 +121,36 @@ class GameLogic:
         ).get()
 
         text = f"{self.question.title} \n"
-
-        for k, v in self.answers.items():
-            _ = "X" * len(k)
-            text += f"| {_} |   ({len(k)})  = {v.score} очков\n"
-
         await keyboard_start_game.add_line([btn_ready_to_answer])
         await self.app.store.vk_api.send_message(
             peer_id=self.conversation_id,
             text=text,
             keyboard=await keyboard_start_game.get_keyboard(),
+        )
+        await self._send_answers_list()
+
+    async def _send_answers_list(self, is_close_answers: bool = True):
+        text = "________ \n"
+
+        if is_close_answers:
+            for answer in self.game_model.question.answers:
+                if answer.title.lower() not in self.answers:
+                    text += f"| {answer.title} | = {answer.score} очков\n"
+                else:
+                    _ = "X" * len(answer.title)
+                    text += (
+                        f"| {_} | ({len(answer.title)})  "
+                        f"= {answer.score} очков\n"
+                    )
+
+        else:
+            for answer in self.game_model.question.answers:
+                text += f"| {answer.title} | = {answer.score} очков\n"
+
+        text += "________ \n"
+        await self.app.store.vk_api.send_message(
+            peer_id=self.conversation_id,
+            text=text,
         )
 
     async def start_game(self, admin_id: int):
@@ -160,6 +180,17 @@ class GameLogic:
                 f" Режим игры :\n{self.game_model.profile}\n",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
+
+            self.pinned_message_id = await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text="Зарегистриованные игроки:",
+            )
+            await self.app.store.game_accessor.change_pinned_message(
+                game_id=self.game_id, id_pinned_message=self.pinned_message_id
+            )
+            await self.app.store.vk_api.pin_message(
+                peer_id=self.conversation_id, message_id=self.pinned_message_id
+            )
             self.game_state = GameStage.REGISTRATION_GAMERS
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
@@ -187,11 +218,13 @@ class GameLogic:
                 )
 
                 if player is None:
-                    vk_user = await self.app.store.vk_api.get_vk_user(user_id)
+                    player: VkUser = await self.app.store.vk_api.get_vk_user(
+                        user_id
+                    )
                     await self.app.store.game_accessor.add_player(
                         game_id=self.game_id,
-                        vk_user_id=vk_user.id,
-                        name=f"{vk_user.last_name} {vk_user.first_name}",
+                        vk_user_id=player.id,
+                        name=f"{player.last_name} {player.first_name}",
                     )
                 else:
                     await self.app.store.game_accessor.add_player(
@@ -219,6 +252,19 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Успешная регистрация!",
                 )
+                pinned_text = (
+                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
+                )
+
+                for v in self.players.values():
+                    pinned_text += f"-- {v.last_name} {v.first_name} \n"
+
+                await self.app.store.vk_api.edit_message(
+                    peer_id=self.conversation_id,
+                    conversation_message_id=self.pinned_message_id,
+                    text=pinned_text,
+                )
+
 
             else:
                 await self.app.store.vk_api.send_event_answer(
@@ -242,13 +288,25 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Вы отменили регистрацию на игру!",
                 )
+                pinned_text = (
+                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
+                )
+
+                for v in self.players.values():
+                    pinned_text += f"-- {v.last_name} {v.first_name} \n"
+
+                await self.app.store.vk_api.edit_message(
+                    peer_id=self.conversation_id,
+                    conversation_message_id=self.pinned_message_id,
+                    text=pinned_text,
+                )
 
             else:
                 await self.app.store.vk_api.send_event_answer(
                     event_id=event_id,
                     peer_id=self.conversation_id,
                     user_id=user_id,
-                    response_text="Вы и не были зареганы!",
+                    response_text="Вы не зарегестрированы!",
                 )
 
         else:
@@ -256,7 +314,7 @@ class GameLogic:
                 event_id=event_id,
                 peer_id=self.conversation_id,
                 user_id=user_id,
-                response_text="Набор игроков уже закончился",
+                response_text="Играть могут только зарегестрированные игрроки",
             )
 
     async def waiting_ready_to_answer(self, event_id: int, user_id: int):
@@ -359,7 +417,7 @@ class GameLogic:
                     peer_id=self.conversation_id,
                     text=f"Игрок: {self.answered_player} ответил правильно! \n"
                     f" Получил {self.answers.pop(answer.lower()).score}"
-                    f" очков! \n ---------------",
+                    f" очков! \n",
                 )
 
                 if len(self.answers.keys()) == 0:
@@ -387,10 +445,15 @@ class GameLogic:
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.FINISHED
             )
-            text = "Игра окончена, таблица победитей:\n\n"
+            await self.app.store.vk_api.send_message(
+                peer_id=self.conversation_id,
+                text="Игра окончена!",
+                keyboard=await VkKeyboard().get_keyboard(),
+            )
             players_scores = await self.app.store.game_accessor.get_score(
                 game_id=self.game_id
             )
+            text = "Таблица победитей: \n 🏆"
 
             for player_name, player_score in players_scores:
                 text += " {:<15} :{:<5} очков\n".format(
@@ -403,6 +466,10 @@ class GameLogic:
                 text=text,
                 keyboard=await VkKeyboard().get_keyboard(),
             )
+            await self.app.store.vk_api.unpin_message(
+                peer_id=self.conversation_id
+            )
+
             return True
 
         return False
@@ -418,6 +485,9 @@ class GameLogic:
                 peer_id=self.conversation_id,
                 text="Игра отменена!",
                 keyboard=await keyboard_empty.get_keyboard(),
+            )
+            await self.app.store.vk_api.unpin_message(
+                peer_id=self.conversation_id
             )
             return True
 

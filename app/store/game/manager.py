@@ -3,6 +3,7 @@ from logging import getLogger
 
 from app.game.constants import GameStage
 from app.game.logic import GameLogic
+from app.messages.logic import MessageChecker
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -57,6 +58,13 @@ class BotManager:
             message = update.object.message.text
             from_id = update.object.message.from_id
 
+            if MessageChecker().filter_word(update.object.message.text):
+                self.logger.info("Найден мат")
+                await self.app.store.vk_api.send_reaction(
+                    peer_id=update.object.message.peer_id,
+                    message_id=update.object.message.conversation_message_id,
+                )
+                
             if not self.games:
                 await self.setup_game_store()
 
