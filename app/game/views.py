@@ -162,7 +162,7 @@ class PatchSettingsView(AuthRequiredMixin, View, CorsViewMixin):
 
         return json_response()
 
-
+      
 class DefaultSettingsView(AuthRequiredMixin, View, CorsViewMixin):
     @docs(
         tags=["Settings"],

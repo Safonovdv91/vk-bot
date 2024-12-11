@@ -64,7 +64,7 @@ class BotManager:
                     peer_id=update.object.message.peer_id,
                     message_id=update.object.message.conversation_message_id,
                 )
-
+                
             if not self.games:
                 await self.setup_game_store()
 

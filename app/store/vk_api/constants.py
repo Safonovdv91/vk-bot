@@ -11,6 +11,7 @@ class VkMessagesMethods(Enum):
     send_reaction = "messages.sendReaction"
 
 
+
 API_PATH = "https://api.vk.com/method/"
 API_VERSION = "5.131"
 VK_METHOD_ACT = "a_check"

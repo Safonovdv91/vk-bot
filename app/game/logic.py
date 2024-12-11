@@ -24,7 +24,6 @@ class GameLogic:
         self.logger = getLogger("BotManager")
         self.background_tasks = set()
         self.game_model = game_model
-
         self.pinned_message_id = self.game_model.pinned_conversation_message_id
         self.game_id = game_model.id
         self.question_id: game_model.question_id
@@ -192,7 +191,6 @@ class GameLogic:
             await self.app.store.vk_api.pin_message(
                 peer_id=self.conversation_id, message_id=self.pinned_message_id
             )
-
             self.game_state = GameStage.REGISTRATION_GAMERS
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.REGISTRATION_GAMERS
@@ -266,6 +264,7 @@ class GameLogic:
                     conversation_message_id=self.pinned_message_id,
                     text=pinned_text,
                 )
+
 
             else:
                 await self.app.store.vk_api.send_event_answer(
@@ -470,6 +469,7 @@ class GameLogic:
             await self.app.store.vk_api.unpin_message(
                 peer_id=self.conversation_id
             )
+
             return True
 
         return False
