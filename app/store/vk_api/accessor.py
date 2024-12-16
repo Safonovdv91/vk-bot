@@ -107,7 +107,7 @@ class VkApiAccessor(BaseAccessor):
 
     async def _get_long_poll_service(self) -> None:
         self.logger.info("Получаем ключ лонгполинга")
-        
+
         async with self.session.get(
             self._build_query(
                 host=self._API_PATH,
@@ -229,7 +229,6 @@ class VkApiAccessor(BaseAccessor):
         params = {
             "random_id": random.randint(1, 2**32),
             "peer_ids": peer_id,
-
             "message": text,
         }
 
