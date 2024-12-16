@@ -188,7 +188,7 @@ class TestGameSettingsGetById:
 
 class TestChangeProfile:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get(
+        response = await cli.patch(
             "game/profile.default", params={"time_to_registration": 12}
         )
 

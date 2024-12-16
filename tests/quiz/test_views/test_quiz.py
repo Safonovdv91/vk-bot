@@ -5,8 +5,19 @@ from app.quiz.models import Question
 
 class TestQuestionAddView:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/quiz.questions_add")
-
+        response = await cli.post(
+            "/quiz.questions_add",
+            json={
+                "title": "Что в тяжелой коробке. что в ней?",
+                "theme_id": 1,
+                "answers": [
+                    {"id": 0, "title": "Еду", "score": 10},
+                    {"id": 0, "title": "холодильник", "score": 20},
+                    {"id": 0, "title": "доллары", "score": 30},
+                    {"id": 0, "title": "телевизор", "score": 40},
+                ],
+            },
+        )
         assert response.status == 401, f"response = {response}"
 
         data = await response.json()
@@ -109,7 +120,9 @@ class TestQuestionAddView:
 
 class TestQuestionDeleteByIdView:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/quiz.questions_delete_by_id")
+        response = await cli.delete(
+            "/quiz.questions_delete_by_id", params={"question_id": 1}
+        )
         assert response.status == 401
 
         data = await response.json()
@@ -218,7 +231,9 @@ class TestThemeListView:
 
 class TestThemeDeleteByIdView:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/quiz.themes_delete_by_id")
+        response = await cli.delete(
+            "/quiz.themes_delete_by_id", params={"theme_id": 1}
+        )
         assert response.status == 401
 
         data = await response.json()
@@ -255,7 +270,10 @@ class TestThemeDeleteByIdView:
 
 class TestThemeAddView:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/quiz.themes_add")
+        response = await cli.post(
+            "/quiz.themes_add",
+            json={"title": "Новая тема", "description": "Какое-то описание"},
+        )
         assert response.status == 401
 
         data = await response.json()
