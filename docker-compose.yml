@@ -1,5 +1,5 @@
 services:
-  db:
+  vk_bot_db:
     container_name: "vk_bot_postgres"
     image: postgres:15.4-alpine
     restart: always
@@ -13,15 +13,15 @@ services:
       - /vk_bot/pg_data:/var/lib/postgresql/data
     networks:
       - vkbot-net
-  app:
+  vk_bot_backend:
     build:
       context: .
-    container_name: "vk_bot_app"
+    container_name: "vk_bot_backend"
     command: bash -c "alembic upgrade head && python main.py"
     ports:
       - "9000:8000"
     depends_on:
-      - db
+      - vk_bot_db
     networks:
       - vkbot-net
 
