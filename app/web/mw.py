@@ -1,6 +1,7 @@
 import json
 import typing
 
+from aiohttp import web
 from aiohttp.web_exceptions import HTTPException, HTTPUnprocessableEntity
 from aiohttp.web_middlewares import middleware
 from aiohttp_apispec import validation_middleware
@@ -62,7 +63,38 @@ async def auth_middleware(request: "Request", handler):
     return await handler(request)
 
 
+async def cors_middleware(app, handler):
+    async def middleware_handler(request):
+        origin = request.headers.get("Origin")
+        if origin and origin in app.config.allowed_origins:
+            if request.method == "OPTIONS":
+                return web.Response(
+                    status=200,
+                    headers={
+                        "Access-Control-Allow-Origin": origin,
+                        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                        "Access-Control-Allow-Headers": "Origin, Content-Type, Accept, Authorization",
+                        "Access-Control-Allow-Credentials": "true",
+                    },
+                )
+
+            response = await handler(request)
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, DELETE, OPTIONS"
+            )
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Origin, Content-Type, Accept, Authorization"
+            )
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+        return await handler(request)
+
+    return middleware_handler
+
+
 def setup_middlewares(app: "Application"):
     app.middlewares.append(error_handling_middleware)
     app.middlewares.append(validation_middleware)
     app.middlewares.append(auth_middleware)
+    app.middlewares.append(cors_middleware)

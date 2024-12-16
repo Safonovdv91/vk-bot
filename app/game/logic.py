@@ -265,7 +265,6 @@ class GameLogic:
                     text=pinned_text,
                 )
 
-
             else:
                 await self.app.store.vk_api.send_event_answer(
                     event_id=event_id,

@@ -2,7 +2,6 @@ import asyncio
 from asyncio import Future, Task
 from logging import getLogger
 
-
 from app.store import Store
 
 

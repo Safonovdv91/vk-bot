@@ -85,7 +85,7 @@ class GameAccessor(BaseAccessor):
                     reason="Не удалось обновить pinned message из-за"
                     " проблемы целостности данных"
                 ) from exc
-                
+
     async def add_player(self, game_id: int, vk_user_id: int, name: str):
         player = Player(game_id=game_id, vk_user_id=vk_user_id, name=name)
         async with self.app.database.session() as session:

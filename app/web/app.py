@@ -12,7 +12,6 @@ from app.store import Store
 from app.store.database.database import Database
 from app.store.store import setup_store
 from app.web.config import Config, setup_config
-from app.web.cors import setup_cors
 from app.web.logger import setup_logging
 from app.web.mw import setup_middlewares
 from app.web.routes import setup_routes
@@ -58,7 +57,6 @@ def setup_app(config_path: str) -> Application:
     setup_config(app, config_path)
     session_setup(app, EncryptedCookieStorage(app.config.session.key))
     setup_routes(app)
-    setup_cors(app)
     setup_aiohttp_apispec(
         app, title="Vk 100-1 Bot", url="/docs/json", swagger_path="/docs"
     )

@@ -39,9 +39,18 @@ class Config:
     session: SessionConfig | None = None
     bot: BotConfig | None = None
     database: DatabaseConfig | None = None
+    allowed_origins: list[str] | None = None
 
 
 def setup_config(app: "Application", config_path: str):
+    allowed_origins = [
+        "http://0.0.0.0:3000",
+        "http://0.0.0.0:3001",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4545",
+        "http://0.0.0.0:4545",
+    ]
     with open(config_path, "r") as f:
         raw_config = yaml.safe_load(f)
 
@@ -58,4 +67,5 @@ def setup_config(app: "Application", config_path: str):
             group_id=raw_config["bot"]["group_id"],
         ),
         database=DatabaseConfig(**raw_config["database"]),
+        allowed_origins=allowed_origins,
     )

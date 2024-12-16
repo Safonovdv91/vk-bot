@@ -4,7 +4,6 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from aiohttp_cors import CorsViewMixin
 
 from app.game.models import GameSettings
 from app.game.schemes import (
@@ -24,7 +23,7 @@ from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response
 
 
-class GameListView(AuthRequiredMixin, View, CorsViewMixin):
+class GameListView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить все игры",
@@ -43,7 +42,7 @@ class GameListView(AuthRequiredMixin, View, CorsViewMixin):
         return json_response(data=GameListSchema().dump({"games": games}))
 
 
-class GameProfileListActiveView(AuthRequiredMixin, View, CorsViewMixin):
+class GameProfileListActiveView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить активные игры",
@@ -67,7 +66,7 @@ class GameProfileListActiveView(AuthRequiredMixin, View, CorsViewMixin):
         )
 
 
-class GameGetByIdView(AuthRequiredMixin, View, CorsViewMixin):
+class GameGetByIdView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить игру по id",
@@ -85,7 +84,7 @@ class GameGetByIdView(AuthRequiredMixin, View, CorsViewMixin):
         )
 
 
-class SettingsGetByIdView(AuthRequiredMixin, View, CorsViewMixin):
+class SettingsGetByIdView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Получить настройки профиля по id",
@@ -104,7 +103,7 @@ class SettingsGetByIdView(AuthRequiredMixin, View, CorsViewMixin):
         )
 
 
-class SettingsAddView(AuthRequiredMixin, View, CorsViewMixin):
+class SettingsAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Добавить игровой профиль",
@@ -131,7 +130,7 @@ class SettingsAddView(AuthRequiredMixin, View, CorsViewMixin):
         )
 
 
-class PatchSettingsView(AuthRequiredMixin, View, CorsViewMixin):
+class PatchSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Изменить настройки профиля игры",
@@ -162,8 +161,8 @@ class PatchSettingsView(AuthRequiredMixin, View, CorsViewMixin):
 
         return json_response()
 
-      
-class DefaultSettingsView(AuthRequiredMixin, View, CorsViewMixin):
+
+class DefaultSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Сменить настройки стандартной игры",
