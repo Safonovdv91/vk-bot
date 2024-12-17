@@ -53,7 +53,7 @@ def setup_config(app: "Application", config_path: str):
     for i in range(10):
         allowed_origins.append(f"http://10.252.1.{i}:3000")
         allowed_origins.append(f"http://10.252.1.{i}:3001")
-        
+
     with open(config_path, "r") as f:
         raw_config = yaml.safe_load(f)
 
