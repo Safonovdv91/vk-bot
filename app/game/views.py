@@ -27,7 +27,23 @@ class GameListView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить все игры",
-        description=" Отобразить все игры",
+        description="""
+        Возвращает все игры по выбранному 
+        ----
+        state_filter - фильтр по состоянию игры
+        
+        - "registration" - начата регистрация игры
+        - "wait_btn_answer" - задан вопрос, ожидаем ответ
+        - "wait_answer" - кнопка нажата, ожидаем когда ответит игрок
+        - "finished" - игра завершена
+        - "canceled" - игра отменена
+        ----
+        limit - количество игр на странице
+        ----
+        offset - смещение
+        ----
+        В случае пустых значений - возвращает все что есть.
+        """
     )
     @querystring_schema(GameListQueryFilteredSchema)
     @response_schema(GameListSchema)
