@@ -73,7 +73,8 @@ async def cors_middleware(app, handler):
                     headers={
                         "Access-Control-Allow-Origin": origin,
                         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                        "Access-Control-Allow-Headers": "Origin, Content-Type, Accept, Authorization",
+                        "Access-Control-Allow-Headers": "Origin, Content-Type, "
+                        "Accept, Authorization",
                         "Access-Control-Allow-Credentials": "true",
                     },
                 )
@@ -95,6 +96,6 @@ async def cors_middleware(app, handler):
 
 def setup_middlewares(app: "Application"):
     app.middlewares.append(error_handling_middleware)
-    app.middlewares.append(validation_middleware)
     app.middlewares.append(auth_middleware)
+    app.middlewares.append(validation_middleware)
     app.middlewares.append(cors_middleware)
