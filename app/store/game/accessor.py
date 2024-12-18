@@ -400,8 +400,13 @@ class GameSettingsAccessor(BaseAccessor):
                     reason="min_count_gamers не может быть"
                     " больше max_count_gamers"
                 )
-            session.add(new_game_settings)
-            await session.commit()
+            try:
+                session.add(new_game_settings)
+                await session.commit()
+            except sqlalchemy.exc.IntegrityError:
+                raise HTTPBadRequest(
+                    reason="Профиль игры с такими параметрами уже существует"
+                )
 
     async def update_settings(
         self,
