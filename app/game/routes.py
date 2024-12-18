@@ -21,5 +21,5 @@ def setup_routes(app: "Application"):
 
     app.router.add_view("/game/profile.get_by_id", SettingsGetByIdView)
     app.router.add_view("/game/profile.patch", PatchSettingsView)
-    app.router.add_view("/game/profile.settings", AddSettingsView)
-    app.router.add_view("/game/profile.default", DefaultSettingsView)
+    app.router.add_view("/game/profile.add", AddSettingsView)
+    app.router.add_view("/game/profile_default.patch", DefaultSettingsView)

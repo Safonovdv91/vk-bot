@@ -3,7 +3,7 @@ from aiohttp.test_utils import TestClient
 
 class TestListActive:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/game.list_active")
+        response = await cli.get("/game/list_active")
 
         assert response.status == 401, f"response = {response}"
 
@@ -13,7 +13,7 @@ class TestListActive:
     async def test_success_empty_finished(
         self, auth_cli: TestClient, game_finished, game_canceled
     ) -> None:
-        response = await auth_cli.get("/game.list_active")
+        response = await auth_cli.get("/game/list_active")
 
         assert response.status == 200, f"response = {response}"
 
@@ -21,7 +21,7 @@ class TestListActive:
         assert data == {"data": {"games": []}, "status": "ok"}
 
     async def test_success(self, auth_cli: TestClient, game_running) -> None:
-        response = await auth_cli.get("/game.list_active")
+        response = await auth_cli.get("/game/list_active")
 
         assert response.status == 200, f"response = {response}"
 
@@ -65,7 +65,7 @@ class TestListActive:
 
 class TestGetGameById:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get("/game.get_by_id", params={"game_id": 1})
+        response = await cli.get("/game/get_by_id", params={"game_id": 1})
 
         assert response.status == 401, f"response = {response}"
 
@@ -75,7 +75,7 @@ class TestGetGameById:
     async def test_get_by_id_success(
         self, auth_cli: TestClient, game_running
     ) -> None:
-        response = await auth_cli.get("/game.get_by_id", params={"game_id": 1})
+        response = await auth_cli.get("/game/get_by_id", params={"game_id": 1})
 
         assert response.status == 200, f"response = {response}"
 
@@ -114,7 +114,7 @@ class TestGetGameById:
     async def test_get_by_id_success_no_game(
         self, auth_cli: TestClient, game_running
     ) -> None:
-        response = await auth_cli.get("/game.get_by_id", params={"game_id": 2})
+        response = await auth_cli.get("/game/get_by_id", params={"game_id": 2})
 
         assert response.status == 200, f"response = {response}"
 
@@ -125,7 +125,7 @@ class TestGetGameById:
         self, auth_cli: TestClient, game_running
     ) -> None:
         response = await auth_cli.get(
-            "/game.get_by_id", params={"game_id": "sd"}
+            "/game/get_by_id", params={"game_id": "sd"}
         )
 
         assert response.status == 400, f"response = {response}"
@@ -186,10 +186,10 @@ class TestGameSettingsGetById:
         }
 
 
-class TestChangeProfile:
+class TestChangeDefaultProfile:
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.patch(
-            "game/profile.default", params={"time_to_registration": 12}
+            "game/profile_default.patch", params={"time_to_registration": 12}
         )
 
         assert response.status == 401, f"response = {response}"
@@ -199,7 +199,7 @@ class TestChangeProfile:
 
     async def test_success(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
-            "game/profile.default", params={"time_to_registration": 122}
+            "game/profile_default.patch", params={"time_to_registration": 122}
         )
 
         assert response.status == 200, f"response = {response}"
@@ -208,7 +208,7 @@ class TestChangeProfile:
         assert data == {"data": {}, "status": "ok"}
 
         response = await auth_cli.get(
-            "game/profile.get_by_id", params={"profile_id": 1}
+            "/game/profile.get_by_id", params={"profile_id": 1}
         )
         assert response.status == 200
 
@@ -234,7 +234,7 @@ class TestChangeProfile:
         self, auth_cli: TestClient, game_settings
     ) -> None:
         response = await auth_cli.patch(
-            "game/profile.default",
+            "game/profile_default.patch",
             params={
                 "min_count_gamers": 3,
                 "max_count_gamers": 7,
@@ -269,7 +269,7 @@ class TestChangeProfile:
         self, auth_cli: TestClient, game_settings
     ) -> None:
         response = await auth_cli.patch(
-            "game/profile.default",
+            "game/profile_default.patch",
             params={
                 "max_count_gamers": 1,
             },
