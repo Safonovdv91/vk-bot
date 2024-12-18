@@ -27,7 +27,8 @@ class ThemeAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Quiz"],
         summary="Добавление темы",
-        description="Здесь добавляется тема",
+        description="Добавление тематики для будущих вопросов\n"
+        " Указывается заголовок и описание",
     )
     @request_schema(ThemeSchema)
     @response_schema(ThemeSchema)
@@ -40,7 +41,13 @@ class ThemeAddView(AuthRequiredMixin, View):
 
 
 class ThemeListView(AuthRequiredMixin, View):
-    @docs(tags=["Quiz"], summary="Отобразить темы")
+    @docs(
+        tags=["Quiz"],
+        summary="Отобразить существующие темы",
+        description="""
+        Возвращает все существующие темы.
+        """,
+    )
     @querystring_schema(ThemeListQuerySchema)
     @response_schema(ThemeListSchema)
     async def get(self):
@@ -77,10 +84,23 @@ class ThemeDeleteByIdView(
 
 
 class QuestionAddView(AuthRequiredMixin, View):
-    @docs(tags=["Quiz"], summary="Добавить вопрос")
+    @docs(
+        tags=["Quiz"],
+        summary="Добавить вопрос для игры 100 к 1",
+        description="""
+        В одном вопросе несколько ответов.
+        id темы - номер темы(если не указывать - то значение 1)
+        title - заголовок вопроса(то что будут видеть игроки)
+        answers - список ответов на вопрос
+        -------
+        у каждого ответа присутствует количество баллов, важно, чтобы 
+        сумма всех баллов по итогу была равна 100
+        """,
+    )
     @request_schema(QuestionSchema)
     @response_schema(QuestionSchema)
     async def post(self):
+        # todo если тема не указана то дефолтное значение 1
         theme_id = self.data.get("theme_id")
         raw_answers = self.data.get("answers")
         title = self.data.get("title")
@@ -97,7 +117,13 @@ class QuestionAddView(AuthRequiredMixin, View):
 
 
 class QuestionGetByIdView(AuthRequiredMixin, View):
-    @docs(tags=["Quiz"], summary="Получить вопрос по id")
+    @docs(
+        tags=["Quiz"],
+        summary="Получить вопрос по id",
+        description="""
+        Получить вопрос по id, если вопрос не найден - возвращается 404
+        """,
+    )
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
     async def get(self):
@@ -108,7 +134,13 @@ class QuestionGetByIdView(AuthRequiredMixin, View):
 
 
 class QuestionDeleteByIdView(AuthRequiredMixin, View):
-    @docs(tags=["Quiz"], summary="Удалить вопрос по ID")
+    @docs(
+        tags=["Quiz"],
+        summary="Удалить вопрос по ID",
+        description="""
+        Удалить вопрос по id, если вопрос не найден - возвращается 404
+        """,
+    )
     @querystring_schema(QuestionIdSchema)
     @response_schema(QuestionSchema)
     async def delete(self):
@@ -126,10 +158,20 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
 
 
 class QuestionListView(AuthRequiredMixin, View):
-    @docs(tags=["Quiz"], summary="Отобразить список вопросов")
+    @docs(
+        tags=["Quiz"],
+        summary="Отобразить список вопросов",
+        description="""
+        Отобразить список вопросов, если не указана тема -
+        то отображаются все вопросы так же есть query поля
+        limit и offset - для ограничения выборки
+        """,
+    )
     @querystring_schema(ThemeQueryIdSchema)
     @response_schema(QuestionListSchema)
     async def get(self):
+        # todo если тема не указана то на данный момент выбрасывает ошибку
+        # надо сделать чтобы слало просто все вопросы
         theme_id = self.request.query.get("theme_id")
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
@@ -146,13 +188,17 @@ class QuestionPatchById(AuthRequiredMixin, View):
     @docs(
         tags=["Quiz"],
         summary="Изменить вопрос по ID",
-        description="Изменить существубщий вопрос, "
-        "можно изменить title и id темы.",
+        description="""
+        Изменяет существующий вопрос, для изменения необходимо передать
+        question_id - в query параметре, остальные параметры передаются в 
+        теле запроса
+        """,
     )
     @querystring_schema(QuestionIdSchema)
     @request_schema(QuestionPatchRequestsSchema)
     @response_schema(QuestionSchema)
     async def patch(self):
+        # todo Проверить валидацию по query т.к. в scheme ошибка
         question_id = self.request.query.get("question_id")
         raw_answers = self.data.get("answers")
         theme_id = self.data.get("theme_id")

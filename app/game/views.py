@@ -27,7 +27,23 @@ class GameListView(AuthRequiredMixin, View):
     @docs(
         tags=["Game"],
         summary="Получить все игры",
-        description=" Отобразить все игры",
+        description="""
+        Возвращает все игры по выбранному 
+        ----
+        state_filter - фильтр по состоянию игры
+        
+        - "registration" - начата регистрация игры
+        - "wait_btn_answer" - задан вопрос, ожидаем ответ
+        - "wait_answer" - кнопка нажата, ожидаем когда ответит игрок
+        - "finished" - игра завершена
+        - "canceled" - игра отменена
+        ----
+        limit - количество игр на странице
+        ----
+        offset - смещение
+        ----
+        В случае пустых значений - возвращает все что есть.
+        """,
     )
     @querystring_schema(GameListQueryFilteredSchema)
     @response_schema(GameListSchema)
@@ -88,6 +104,17 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Получить настройки профиля по id",
+        description="""
+        Возвращает подробные настройки игрового профиля:
+        ----
+        - id -  id профиля игры
+        - profile_name -  Название ,
+        - description - Описание профиля игры, (высылается перед началом игры). 
+        - time_to_registration -  Время выделяемое на регистрацию участников
+        - min_count_gamers -  Минимальное количество участников
+        - max_count_gamers -  Максимальное количество участников
+        - time_to_answer -  Время выдаваемое на ответ при нажатие кнопки
+        """,
     )
     @querystring_schema(SettingsIdSchema)
     @response_schema(GameSettingsSchema)
@@ -103,15 +130,24 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
         )
 
 
-class SettingsAddView(AuthRequiredMixin, View):
+class AddSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Добавить игровой профиль",
-        description="Изменить характеристики игрового профиля",
+        description="""
+        Добавление нового профиля игры
+        ----
+        - profile_name -  Название игрового профиля
+        - description - Описание профиля игры, (высылается перед началом игры). 
+        - time_to_registration -  Время выделяемое на регистрацию участников
+        - min_count_gamers -  Минимальное количество участников
+        - max_count_gamers -  Максимальное количество участников
+        - time_to_answer -  Время выдаваемое на ответ при нажатие кнопки
+        """,
     )
     @request_schema(GameSettingsSchema)
     @response_schema(GameSettingsSchema)
-    async def add(self):
+    async def post(self):
         game_settings = GameSettings(
             profile_name=self.data.get("profile_name"),
             description=self.data.get("description"),
@@ -134,7 +170,17 @@ class PatchSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
         summary="Изменить настройки профиля игры",
-        description="Изменить стандартные настройки игры, создан для удобства",
+        description="""
+        Изменение профиля игры
+        profile_id  - query параметр с id профиля который будет изменен
+        ----
+        - profile_name -  Название игрового профиля
+        - description - Описание профиля игры, (высылается перед началом игры). 
+        - time_to_registration -  Время выделяемое на регистрацию участников
+        - min_count_gamers -  Минимальное количество участников
+        - max_count_gamers -  Максимальное количество участников
+        - time_to_answer -  Время выдаваемое на ответ при нажатие кнопки
+        """,
     )
     @querystring_schema(GameSettingsIdSchema)
     @request_schema(GameSettingsPatchSchema)
@@ -165,8 +211,10 @@ class PatchSettingsView(AuthRequiredMixin, View):
 class DefaultSettingsView(AuthRequiredMixin, View):
     @docs(
         tags=["Settings"],
-        summary="Сменить настройки стандартной игры",
-        description="Изменить стандартные настройки игры",
+        summary="Изменить настройки стандартной игры",
+        description="""
+        Изменить настройки стандартной игры(создан для удобства)
+        """,
     )
     @querystring_schema(DefaultGameSettingsIdSchema)
     async def patch(self):
