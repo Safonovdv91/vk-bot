@@ -7,15 +7,15 @@ from aiohttp_apispec import (
 )
 
 from app.blitz.schemes import (
-    BlitzQuestionSchema as QuestionIdSchema,
-    BlitzQuestionSchema as QuestionListSchema,
-    BlitzQuestionSchema as QuestionPatchRequestsSchema,
+    BlitzQuestionIdSchema as QuestionIdSchema,
+    BlitzQuestionListSchema as QuestionListSchema,
+    BlitzQuestionPatchRequestsSchema as QuestionPatchRequestsSchema,
     BlitzQuestionSchema as QuestionSchema,
-    BlitzQuestionSchema as ThemeIdSchema,
-    BlitzQuestionSchema as ThemeListQuerySchema,
-    BlitzQuestionSchema as ThemeListSchema,
-    BlitzQuestionSchema as ThemeQueryIdSchema,
-    BlitzQuestionSchema as ThemeSchema,
+    BlitzThemeIdSchema as ThemeIdSchema,
+    BlitzThemeListQuerySchema as ThemeListQuerySchema,
+    BlitzThemeListSchema as ThemeListSchema,
+    BlitzThemeQueryIdSchema as ThemeQueryIdSchema,
+    BlitzThemeSchema as ThemeSchema,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin

@@ -19,6 +19,10 @@ class BlitzThemeListQuerySchema(Schema):
     offset = fields.Int(required=False, validate=validate.Range(min=1))
 
 
+class BlitzThemeListSchema(Schema):
+    themes = fields.Nested(BlitzThemeSchema, many=True)
+
+
 class BlitzThemeIdSchema(Schema):
     theme_id = fields.Int(required=True, validate=validate.Range(min=1))
 
