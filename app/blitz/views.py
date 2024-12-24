@@ -7,15 +7,15 @@ from aiohttp_apispec import (
 )
 
 from app.blitz.schemes import (
-    QuestionIdSchema,
-    QuestionListSchema,
-    QuestionPatchRequestsSchema,
-    QuestionSchema,
-    ThemeIdSchema,
-    ThemeListQuerySchema,
-    ThemeListSchema,
-    ThemeQueryIdSchema,
-    ThemeSchema,
+    BlitzQuestionSchema as QuestionIdSchema,
+    BlitzQuestionSchema as QuestionListSchema,
+    BlitzQuestionSchema as QuestionPatchRequestsSchema,
+    BlitzQuestionSchema as QuestionSchema,
+    BlitzQuestionSchema as ThemeIdSchema,
+    BlitzQuestionSchema as ThemeListQuerySchema,
+    BlitzQuestionSchema as ThemeListSchema,
+    BlitzQuestionSchema as ThemeQueryIdSchema,
+    BlitzQuestionSchema as ThemeSchema,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -98,6 +98,8 @@ class QuestionAddView(AuthRequiredMixin, View):
         theme_id = self.data.get("theme_id")
         title = self.data.get("title")
         answer = self.data.get("answer")
+        if theme_id is None:
+            theme_id = 1
 
         question = await self.store.blitzes.create_question(
             theme_id=theme_id, answer=answer, title=title
