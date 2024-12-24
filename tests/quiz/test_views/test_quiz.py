@@ -221,7 +221,9 @@ class TestThemeListView:
 
 class TestThemeDeleteByIdView:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.delete("/game/quiz.themes_delete_by_id", params={"theme_id": 1})
+        response = await cli.delete(
+            "/game/quiz.themes_delete_by_id", params={"theme_id": 1}
+        )
         assert response.status == 401
 
         data = await response.json()
