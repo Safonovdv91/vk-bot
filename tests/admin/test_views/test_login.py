@@ -41,9 +41,7 @@ class TestAdminLoginView:
             "data": {"json": {"email": ["Missing data for required field."]}},
         }
 
-    async def test_forbidden_when_not_valid_credentials(
-        self, cli: TestClient
-    ) -> None:
+    async def test_forbidden_when_not_valid_credentials(self, cli: TestClient) -> None:
         response = await cli.post(
             "/admin.login",
             json={

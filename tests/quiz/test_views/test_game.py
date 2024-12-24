@@ -51,8 +51,7 @@ class TestListActive:
                             ],
                             "id": 1,
                             "theme_id": 1,
-                            "title": "Кого или что чаще всего снимает "
-                            "фотограф?",
+                            "title": "Кого или что чаще всего снимает " "фотограф?",
                         },
                         "responsed_player_id": None,
                         "state": "GameStage.WAITING_ANSWER",
@@ -72,9 +71,7 @@ class TestGetGameById:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
-    async def test_get_by_id_success(
-        self, auth_cli: TestClient, game_running
-    ) -> None:
+    async def test_get_by_id_success(self, auth_cli: TestClient, game_running) -> None:
         response = await auth_cli.get("/game/get_by_id", params={"game_id": 1})
 
         assert response.status == 200, f"response = {response}"
@@ -124,9 +121,7 @@ class TestGetGameById:
     async def test_get_by_id_success_bad_id(
         self, auth_cli: TestClient, game_running
     ) -> None:
-        response = await auth_cli.get(
-            "/game/get_by_id", params={"game_id": "sd"}
-        )
+        response = await auth_cli.get("/game/get_by_id", params={"game_id": "sd"})
 
         assert response.status == 400, f"response = {response}"
 
@@ -140,9 +135,7 @@ class TestGetGameById:
 
 class TestGameSettingsGetById:
     async def test_unauthorized(self, cli: TestClient) -> None:
-        response = await cli.get(
-            "game/profile.get_by_id", params={"profile_id": 1}
-        )
+        response = await cli.get("game/profile.get_by_id", params={"profile_id": 1})
 
         assert response.status == 401, f"response = {response}"
 
@@ -150,9 +143,7 @@ class TestGameSettingsGetById:
         assert data["status"] == "unauthorized"
 
     async def test_success(self, auth_cli: TestClient, game_settings) -> None:
-        response = await auth_cli.get(
-            "game/profile.get_by_id", params={"profile_id": 1}
-        )
+        response = await auth_cli.get("game/profile.get_by_id", params={"profile_id": 1})
 
         assert response.status == 200, f"response = {response}"
 
@@ -170,9 +161,7 @@ class TestGameSettingsGetById:
             "status": "ok",
         }
 
-    async def test_success_bad_id(
-        self, auth_cli: TestClient, game_settings
-    ) -> None:
+    async def test_success_bad_id(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.get(
             "game/profile.get_by_id", params={"profile_id": "sd"}
         )
@@ -207,9 +196,7 @@ class TestChangeDefaultProfile:
         data = await response.json()
         assert data == {"data": {}, "status": "ok"}
 
-        response = await auth_cli.get(
-            "/game/profile.get_by_id", params={"profile_id": 1}
-        )
+        response = await auth_cli.get("/game/profile.get_by_id", params={"profile_id": 1})
         assert response.status == 200
 
         data = await response.json()
@@ -230,9 +217,7 @@ class TestChangeDefaultProfile:
             != {"data": {}, "status": "ok"}
         )
 
-    async def test_success_min_max(
-        self, auth_cli: TestClient, game_settings
-    ) -> None:
+    async def test_success_min_max(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
             "game/profile_default.patch",
             params={
@@ -246,9 +231,7 @@ class TestChangeDefaultProfile:
         data = await response.json()
         assert data == {"data": {}, "status": "ok"}
 
-        response = await auth_cli.get(
-            "game/profile.get_by_id", params={"profile_id": 1}
-        )
+        response = await auth_cli.get("game/profile.get_by_id", params={"profile_id": 1})
         assert response.status == 200
 
         data = await response.json()
@@ -265,9 +248,7 @@ class TestChangeDefaultProfile:
             "status": "ok",
         }
 
-    async def test_success_bad_max(
-        self, auth_cli: TestClient, game_settings
-    ) -> None:
+    async def test_success_bad_max(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
             "game/profile_default.patch",
             params={
