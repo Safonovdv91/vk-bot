@@ -3,7 +3,6 @@ from logging import getLogger
 
 from app.games.game_100.constants import GameStage
 from app.games.game_100.logic import GameLogic
-from app.messages.logic import MessageChecker
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -34,22 +33,14 @@ class BotManager:
                 game = self.games[conversation_id]
 
                 if payload_text == "/reg_on":
-                    await game.register_player(
-                        event_id=event_id, user_id=user_id
-                    )
+                    await game.register_player(event_id=event_id, user_id=user_id)
                 elif payload_text == "/reg_off":
-                    await game.unregister_player(
-                        event_id=event_id, user_id=user_id
-                    )
+                    await game.unregister_player(event_id=event_id, user_id=user_id)
                 elif payload_text == "/give_answer":
-                    await game.waiting_ready_to_answer(
-                        event_id=event_id, user_id=user_id
-                    )
+                    await game.waiting_ready_to_answer(event_id=event_id, user_id=user_id)
 
             except KeyError:
-                self.logger.error(
-                    "Пришло эвент сообщение в несуществующую игру"
-                )
+                self.logger.error("Пришло эвент сообщение в несуществующую игру")
 
     async def handle_updates(self, updates: list[MessageUpdate]):
         """Обработка пришедших сообщений"""
@@ -57,13 +48,6 @@ class BotManager:
             conversation_id = update.object.message.peer_id
             message = update.object.message.text
             from_id = update.object.message.from_id
-
-            if MessageChecker().filter_word(update.object.message.text):
-                self.logger.info("Найден мат")
-                await self.app.store.vk_api.send_reaction(
-                    peer_id=update.object.message.peer_id,
-                    message_id=update.object.message.conversation_message_id,
-                )
 
             if not self.games:
                 await self.setup_game_store()
@@ -85,18 +69,14 @@ class BotManager:
                     )
                     return
 
-                game = await self.app.store.game_accessor.get_game_by_id(
-                    game.id
-                )
+                game = await self.app.store.game_accessor.get_game_by_id(game.id)
                 new_game_logic = GameLogic(
                     app=self.app,
                     game_model=game,
                 )
 
                 self.games[conversation_id] = new_game_logic
-                self.logger.info(
-                    "Создаем новую модель игры \n %s", new_game_logic
-                )
+                self.logger.info("Создаем новую модель игры \n %s", new_game_logic)
 
             game = self.games[conversation_id]
             if message == "/start":
