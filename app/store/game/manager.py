@@ -1,8 +1,8 @@
 import typing
 from logging import getLogger
 
-from app.game.constants import GameStage
-from app.game.logic import GameLogic
+from app.games.game_100.constants import GameStage
+from app.games.game_100.logic import GameLogic
 from app.messages.logic import MessageChecker
 from app.store.vk_api.dataclasses import (
     EventUpdate,

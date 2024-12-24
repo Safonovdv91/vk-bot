@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.game.constants import GameStage
+from app.games.game_100.constants import GameStage
 from app.quiz.models import Answer, Question
 from app.store.database.sqlalchemy_base import BaseModel
 

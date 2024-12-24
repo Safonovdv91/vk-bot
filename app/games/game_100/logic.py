@@ -4,8 +4,8 @@ from logging import getLogger
 
 import sqlalchemy.orm.exc
 
-from app.game.constants import GameStage
-from app.game.models import Game, Player
+from app.games.game_100.constants import GameStage
+from app.games.game_100.models import Game, Player
 from app.store.vk_api.dataclasses import VkUser
 from app.store.vk_api.utils import VkButton, VkKeyboard
 

@@ -1,4 +1,4 @@
-from app.game.constants import GameStage
+from app.games.game_100.constants import GameStage
 
 
 def test_something_with_game(mock_game):

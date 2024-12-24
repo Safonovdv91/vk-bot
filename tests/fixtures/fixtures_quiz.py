@@ -1,8 +1,8 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.game.constants import GameStage
-from app.game.models import Game, GameSettings
+from app.games.game_100.constants import GameStage
+from app.games.game_100.models import Game, GameSettings
 from app.quiz.models import (
     Answer,
     Question,

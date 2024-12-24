@@ -1,7 +1,7 @@
 import pytest
 
-from app.game.constants import GameStage
-from app.game.models import Game, Player
+from app.games.game_100.constants import GameStage
+from app.games.game_100.models import Game, Player
 
 
 # Фикстура создаёт мок-экземпляр модели Game
