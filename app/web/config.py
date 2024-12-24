@@ -49,17 +49,6 @@ class Config:
 def setup_config(app: "Application", config_path: str) -> None:
     if getenv("STATUS") == "DEV":
         logger.info("Dev mode activated")
-        allowed_origins = [
-            "http://0.0.0.0:3000",
-            "http://localhost:3000",
-            "http://localhost:3001",
-        ]
-        # добавление адресов с локальной разработкой
-        for i in range(10):
-            allowed_origins.append(f"http://10.252.1.{i}:3000")
-            allowed_origins.append(f"http://10.252.1.{i}:3001")
-
-        logger.info("Allowed origins: %s", allowed_origins)
 
         app.config = Config(
             session=SessionConfig(
@@ -80,8 +69,10 @@ def setup_config(app: "Application", config_path: str) -> None:
                 password=getenv("DB_PASSWORD"),
                 database=getenv("DB_NAME"),
             ),
-            allowed_origins=allowed_origins,
+            allowed_origins=getenv("ALLOWED_ORIGINS"),
         )
+        logger.info("Allowed origins: %s", app.config.allowed_origins)
+
     else:
         with open(config_path, "r") as f:
             raw_config = yaml.safe_load(f)
@@ -99,5 +90,4 @@ def setup_config(app: "Application", config_path: str) -> None:
                 group_id=raw_config["bot"]["group_id"],
             ),
             database=DatabaseConfig(**raw_config["database"]),
-            allowed_origins=allowed_origins,
         )
