@@ -6,8 +6,7 @@ from aiohttp_apispec import (
     response_schema,
 )
 
-from app.quiz.models import Answer
-from app.quiz.schemes import (
+from app.blitz.schemes import (
     QuestionIdSchema,
     QuestionListSchema,
     QuestionPatchRequestsSchema,
@@ -25,7 +24,7 @@ from app.web.utils import json_response
 
 class ThemeAddView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Добавление темы",
         description="Добавление тематики для будущих вопросов\n"
         " Указывается заголовок и описание",
@@ -35,14 +34,14 @@ class ThemeAddView(AuthRequiredMixin, View):
     async def post(self):
         title = self.data.get("title")
         description = self.data.get("description")
-        theme = await self.store.quizzes.create_theme(title, description)
+        theme = await self.store.blitzes.create_theme(title, description)
 
         return json_response(data=ThemeSchema().dump(theme))
 
 
 class ThemeListView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Отобразить существующие темы",
         description="""
         Возвращает все существующие темы.
@@ -53,7 +52,7 @@ class ThemeListView(AuthRequiredMixin, View):
     async def get(self):
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
-        themes = await self.store.quizzes.get_themes_list(limit, offset)
+        themes = await self.store.blitzes.get_themes_list(limit, offset)
 
         return json_response(data=ThemeListSchema().dump({"themes": themes}))
 
@@ -62,13 +61,13 @@ class ThemeDeleteByIdView(
     AuthRequiredMixin,
     View,
 ):
-    @docs(tags=["Quiz"], summary="Удалить тему по ID")
+    @docs(tags=["Blitz"], summary="Удалить тему по ID")
     @querystring_schema(ThemeIdSchema)
     @response_schema(ThemeSchema)
     async def delete(self):
         theme_id = self.request.query.get("theme_id")
 
-        theme = await self.store.quizzes.delete_theme_by_id(int(theme_id))
+        theme = await self.store.blitzes.delete_theme_by_id(int(theme_id))
 
         if theme is None:
             raise HTTPBadRequest(reason=f"Темы с ID = {theme_id} не существует.")
@@ -83,16 +82,13 @@ class ThemeDeleteByIdView(
 
 class QuestionAddView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
-        summary="Добавить вопрос для игры 100 к 1",
+        tags=["Blitz"],
+        summary="Добавить вопрос для игры блитз",
         description="""
         В одном вопросе несколько ответов.
         id темы - номер темы(если не указывать - то значение 1)
         title - заголовок вопроса(то что будут видеть игроки)
-        answers - список ответов на вопрос
-        -------
-        у каждого ответа присутствует количество баллов, важно, чтобы 
-        сумма всех баллов по итогу была равна 100
+        answer - ответ на вопрос
         """,
     )
     @request_schema(QuestionSchema)
@@ -100,15 +96,11 @@ class QuestionAddView(AuthRequiredMixin, View):
     async def post(self):
         # todo если тема не указана то дефолтное значение 1
         theme_id = self.data.get("theme_id")
-        raw_answers = self.data.get("answers")
         title = self.data.get("title")
-        answers = [
-            Answer(title=answer_raw["title"], score=answer_raw["score"])
-            for answer_raw in raw_answers
-        ]
+        answer = self.data.get("answer")
 
-        question = await self.store.quizzes.create_question(
-            theme_id=theme_id, answers=answers, title=title
+        question = await self.store.blitzes.create_question(
+            theme_id=theme_id, answer=answer, title=title
         )
 
         return json_response(data=QuestionSchema().dump(question))
@@ -116,7 +108,7 @@ class QuestionAddView(AuthRequiredMixin, View):
 
 class QuestionGetByIdView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Получить вопрос по id",
         description="""
         Получить вопрос по id, если вопрос не найден - возвращается 404
@@ -126,14 +118,14 @@ class QuestionGetByIdView(AuthRequiredMixin, View):
     @response_schema(QuestionSchema)
     async def get(self):
         question_id = self.request.query.get("question_id")
-        question = await self.store.quizzes.get_question_by_id(int(question_id))
+        question = await self.store.blitzes.get_question_by_id(int(question_id))
 
         return json_response(data=QuestionSchema().dump(question))
 
 
 class QuestionDeleteByIdView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Удалить вопрос по ID",
         description="""
         Удалить вопрос по id, если вопрос не найден - возвращается 404
@@ -143,7 +135,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
     @response_schema(QuestionSchema)
     async def delete(self):
         question_id = self.request.query.get("question_id")
-        question = await self.store.quizzes.delete_question_by_id(int(question_id))
+        question = await self.store.blitzes.delete_question_by_id(int(question_id))
 
         return json_response(
             data={
@@ -155,7 +147,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
 
 class QuestionListView(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Отобразить список вопросов",
         description="""
         Отобразить список вопросов, если не указана тема -
@@ -171,14 +163,14 @@ class QuestionListView(AuthRequiredMixin, View):
         theme_id = self.request.query.get("theme_id")
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
-        questions = await self.store.quizzes.get_questions_list(theme_id, offset, limit)
+        questions = await self.store.blitzes.get_questions_list(theme_id, offset, limit)
 
         return json_response(data=QuestionListSchema().dump({"questions": questions}))
 
 
 class QuestionPatchById(AuthRequiredMixin, View):
     @docs(
-        tags=["Quiz"],
+        tags=["Blitz"],
         summary="Изменить вопрос по ID",
         description="""
         Изменяет существующий вопрос, для изменения необходимо передать
@@ -192,23 +184,15 @@ class QuestionPatchById(AuthRequiredMixin, View):
     async def patch(self):
         # todo Проверить валидацию по query т.к. в scheme ошибка
         question_id = self.request.query.get("question_id")
-        raw_answers = self.data.get("answers")
         theme_id = self.data.get("theme_id")
         title = self.data.get("title")
+        answer = self.data.get("answer")
 
-        if raw_answers:
-            answers = [
-                Answer(title=answer_raw["title"], score=answer_raw["score"])
-                for answer_raw in raw_answers
-            ]
-        else:
-            answers = None
-
-        question = await self.store.quizzes.update_question(
+        question = await self.store.blitzes.update_question(
             question_id=int(question_id),
             new_theme_id=theme_id,
             new_title=title,
-            new_answers=answers,
+            new_answer=answer,
         )
 
         return json_response(data=QuestionSchema().dump(question))

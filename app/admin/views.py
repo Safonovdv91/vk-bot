@@ -35,7 +35,5 @@ class AdminCurrentView(AuthRequiredMixin, View):
     )
     @response_schema(AdminSchema, 200)
     async def get(self):
-        current_user = await self.store.admins.get_by_email(
-            self.request.admin.email
-        )
+        current_user = await self.store.admins.get_by_email(self.request.admin.email)
         return json_response(data=AdminSchema().dump(current_user))

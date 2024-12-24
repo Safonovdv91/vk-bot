@@ -123,9 +123,7 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 
         return json_response(
             data=GameSettingsSchema().dump(
-                await self.store.game_settings_accessor.get_by_id(
-                    id_=profile_id
-                )
+                await self.store.game_settings_accessor.get_by_id(id_=profile_id)
             )
         )
 
@@ -159,9 +157,7 @@ class AddSettingsView(AuthRequiredMixin, View):
 
         return json_response(
             data=GameSettingsSchema().dump(
-                await self.store.game_settings_accessor.add_settings(
-                    game_settings
-                )
+                await self.store.game_settings_accessor.add_settings(game_settings)
             )
         )
 

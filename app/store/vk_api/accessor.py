@@ -88,9 +88,7 @@ class VkApiAccessor(BaseAccessor):
         params.setdefault("v", self._API_VERSION)
         return f"{urljoin(host, method)}?{urlencode(params)}"
 
-    async def _send_request(
-        self, method: VkMessagesMethods, params: dict
-    ) -> dict | None:
+    async def _send_request(self, method: VkMessagesMethods, params: dict) -> dict | None:
         """Отправка запроса к API Вконтакте"""
         params["access_token"] = self.app.config.bot.token
 
@@ -163,9 +161,7 @@ class VkApiAccessor(BaseAccessor):
             if data.get("ts") is not None:
                 self.ts = data.get("ts")
 
-            long_poll_response: LongPollResponse = (
-                LongPollResponse.Schema().load(data)
-            )
+            long_poll_response: LongPollResponse = LongPollResponse.Schema().load(data)
             queue_messages = asyncio.Queue()
 
             for update in long_poll_response.updates:
@@ -204,8 +200,7 @@ class VkApiAccessor(BaseAccessor):
 
             try:
                 workers = [
-                    asyncio.create_task(self.worker(queue_messages))
-                    for i in range(4)
+                    asyncio.create_task(self.worker(queue_messages)) for i in range(4)
                 ]
                 await queue_messages.join()
                 for w in workers:
@@ -304,9 +299,7 @@ class VkApiAccessor(BaseAccessor):
         :param peer_id: id диалога, в котором нажата кнопка.
         :param response_text: Текст ответа, который будет всплывет.
         """
-        event_data = json.dumps(
-            {"type": "show_snackbar", "text": response_text}
-        )
+        event_data = json.dumps({"type": "show_snackbar", "text": response_text})
         params = {
             "event_id": event_id,
             "event_data": event_data,
