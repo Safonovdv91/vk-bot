@@ -1,4 +1,5 @@
 import json
+import logging
 import typing
 
 from aiohttp import web
@@ -13,6 +14,7 @@ from app.web.utils import error_json_response
 if typing.TYPE_CHECKING:
     from app.web.app import Application, Request
 
+logger = logging.getLogger(__name__)
 
 HTTP_ERROR_CODES = {
     400: "bad_request",
@@ -63,39 +65,46 @@ async def auth_middleware(request: "Request", handler):
     return await handler(request)
 
 
-async def cors_middleware(app, handler):
-    async def middleware_handler(request):
-        origin = request.headers.get("Origin")
-        if origin and origin in app.config.allowed_origins:
-            if request.method == "OPTIONS":
-                return web.Response(
-                    status=200,
-                    headers={
-                        "Access-Control-Allow-Origin": origin,
-                        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                        "Access-Control-Allow-Headers": "Origin, Content-Type, "
-                        "Accept, Authorization",
-                        "Access-Control-Allow-Credentials": "true",
-                    },
-                )
+@middleware
+async def cors_middleware(request: "Request", handler):
+    """Мидлвара добавляющие ответ CORS для всех запросов
+    На данный момент разрешены запросы со всех origins
+    ----
+    Если приходит какой-то урезанный запрос, где нет хэдера origin - отвечает origin *
+    """
+    origin = request.headers.get("Origin")
 
-            response = await handler(request)
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, OPTIONS"
-            )
-            response.headers["Access-Control-Allow-Headers"] = (
-                "Origin, Content-Type, Accept, Authorization"
-            )
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            return response
-        return await handler(request)
+    if origin is None:
+        logger.warning("Origin is None")
+        origin = "*"
 
-    return middleware_handler
+    logger.info("Origin: %s", origin)
+    if request.method == "OPTIONS":
+        return web.Response(
+            status=200,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Origin, Content-Type, "
+                "Accept, Authorization",
+                "Access-Control-Allow-Credentials": "true",
+            },
+        )
+
+    response = await handler(request)
+    logger.info(response)
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = (
+        "Origin, Content-Type, " "Accept, Authorization"
+    )
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 
 def setup_middlewares(app: "Application"):
     app.middlewares.append(error_handling_middleware)
     app.middlewares.append(auth_middleware)
     app.middlewares.append(validation_middleware)
-    # app.middlewares.append(cors_middleware)
+    app.middlewares.append(cors_middleware)
+
