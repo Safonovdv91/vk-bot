@@ -1,4 +1,4 @@
-name: Check homework
+name: Ruff check
 on: [push]
 jobs:
   lint:
@@ -9,5 +9,5 @@ jobs:
         with:
           python-version: 3.12
       - name: Install ruff
-        run: pip install ruff==0.4.2
+        run: pip install ruff==0.8.3
       - run: ruff format --check && ruff check --no-fix
