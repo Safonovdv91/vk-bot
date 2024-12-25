@@ -46,7 +46,6 @@ async def error_handling_middleware(request: "Request", handler):
             message=str(e),
         )
     except Exception as e:
-        request.app.logger.error("Exception", exc_info=e)
         return error_json_response(
             http_status=500, status="internal server error", message=str(e)
         )
@@ -92,6 +91,7 @@ async def cors_middleware(request: "Request", handler):
         )
 
     response = await handler(request)
+    # response = web.Response()
     logger.info(response)
     response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
@@ -103,8 +103,7 @@ async def cors_middleware(request: "Request", handler):
 
 
 def setup_middlewares(app: "Application"):
+    app.middlewares.append(cors_middleware)
     app.middlewares.append(error_handling_middleware)
     app.middlewares.append(auth_middleware)
     app.middlewares.append(validation_middleware)
-    app.middlewares.append(cors_middleware)
-
