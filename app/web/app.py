@@ -55,7 +55,16 @@ app = Application()
 def setup_app(config_path: str) -> Application:
     setup_logging(app)
     setup_config(app, config_path)
-    session_setup(app, EncryptedCookieStorage(app.config.session.key, cookie_name="vk_bot_session", samesite="None",path="/", secure=True))
+    session_setup(
+        app,
+        EncryptedCookieStorage(
+            app.config.session.key,
+            cookie_name="vk_bot_session",
+            samesite="None",
+            path="/",
+            secure=True,
+        ),
+    )
     setup_routes(app)
     setup_aiohttp_apispec(app, title="Vk Bot", url="/docs/json", swagger_path="/docs")
     setup_middlewares(app)
