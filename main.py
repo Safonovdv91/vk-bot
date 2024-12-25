@@ -12,8 +12,8 @@ if __name__ == "__main__":
         logger.warning("Running on port %s", os.getenv("PORT"))
         port = int(os.getenv("PORT"))
     else:
-        logger.warning("Running on port 8080")
-        port = 8080
+        logger.warning("Running on port 8000")
+        port = 8000
 
     run_app(
         setup_app(
