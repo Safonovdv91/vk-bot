@@ -3,15 +3,15 @@ from marshmallow import Schema, fields, validate
 
 class BlitzThemeSchema(Schema):
     id = fields.Int(required=False)
-    title = fields.Str(required=True)
-    description = fields.Str(required=False)
+    title = fields.Str(required=True, validate=validate.Length(min=1, max=50))
+    description = fields.Str(required=False, validate=validate.Length(min=None, max=500))
 
 
 class BlitzQuestionSchema(Schema):
     id = fields.Int(required=False)
-    title = fields.Str(required=True)
-    theme_id = fields.Int(required=True)
-    answer = fields.Str(required=True)
+    title = fields.Str(required=True, validate=validate.Length(min=1, max=500))
+    theme_id = fields.Int(required=True, default=1, validate=validate.Range(min=1))
+    answer = fields.Str(required=True, validate=validate.Length(min=1, max=100))
 
 
 class BlitzThemeListQuerySchema(Schema):

@@ -15,6 +15,7 @@ from app.store import Store
 from app.store.database.database import Database
 from app.web.app import Application, setup_app
 from app.web.config import Config
+from tests.fixtures.fixtures_blitz import *
 from tests.fixtures.fixtures_logic import *
 from tests.fixtures.fixtures_quiz import *
 

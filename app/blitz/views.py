@@ -25,9 +25,12 @@ from app.web.utils import json_response
 class ThemeAddView(AuthRequiredMixin, View):
     @docs(
         tags=["Blitz"],
-        summary="Добавление темы",
-        description="Добавление тематики для будущих вопросов\n"
-        " Указывается заголовок и описание",
+        summary="Добавление темы для будущих вопросов",
+        description="""
+        Добавление тематики для будущих вопросов
+        title - название темы(до 50 символов)
+        description - описание темы(до 500 символов)
+        """,
     )
     @request_schema(ThemeSchema)
     @response_schema(ThemeSchema)
@@ -45,6 +48,8 @@ class ThemeListView(AuthRequiredMixin, View):
         summary="Отобразить существующие темы",
         description="""
         Возвращает все существующие темы.
+        limit - количество возвращаемых тем
+        offset - смещение
         """,
     )
     @querystring_schema(ThemeListQuerySchema)
