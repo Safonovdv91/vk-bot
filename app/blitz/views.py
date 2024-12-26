@@ -99,7 +99,6 @@ class QuestionAddView(AuthRequiredMixin, View):
     @request_schema(QuestionSchema)
     @response_schema(QuestionSchema)
     async def post(self):
-        # todo если тема не указана то дефолтное значение 1
         theme_id = self.data.get("theme_id")
         title = self.data.get("title")
         answer = self.data.get("answer")
