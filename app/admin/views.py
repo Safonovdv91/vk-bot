@@ -1,6 +1,6 @@
 from aiohttp.web_exceptions import HTTPForbidden
 from aiohttp_apispec import docs, request_schema, response_schema
-from aiohttp_session import new_session
+from aiohttp_session import get_session, new_session
 
 from app.admin.models import AdminModel
 from app.admin.schemes import AdminSchema
@@ -37,3 +37,14 @@ class AdminCurrentView(AuthRequiredMixin, View):
     async def get(self):
         current_user = await self.store.admins.get_by_email(self.request.admin.email)
         return json_response(data=AdminSchema().dump(current_user))
+
+
+class AdminLogoutView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Auth"],
+        summary="Выход из системы",
+    )
+    async def post(self):
+        session = await get_session(self.request)
+        session.invalidate()
+        return json_response(data={"message": "Вы успешно вышли из системы"})
