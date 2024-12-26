@@ -72,9 +72,14 @@ class VkApiAccessor(BaseAccessor):
         except Exception as e:
             self.logger.error("Exception", exc_info=e)
 
-        self.poller = Poller(app.store)
-        self.logger.info("start polling")
-        self.poller.start()
+        if self.app.config.bot.is_turn_on:
+            self.logger.info("Запускаем бота")
+
+            self.poller = Poller(app.store)
+            self.logger.info("start polling")
+            self.poller.start()
+        else:
+            self.logger.info("Бот выключен")
 
     async def disconnect(self, app: "Application") -> None:
         if self.session:

@@ -1,9 +1,9 @@
 import typing
 from dataclasses import dataclass
 from logging import getLogger
-from os import getenv
 
 import yaml
+from cryptography.fernet import Fernet
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -13,7 +13,11 @@ logger = getLogger(__name__)
 
 @dataclass
 class SessionConfig:
-    key: str
+    key: str | None = None
+    cookie_name: str = "session"
+    samesite: str = "Lax"
+    path: str = "/"
+    secure: bool = True
 
 
 @dataclass
@@ -26,6 +30,7 @@ class AdminConfig:
 class BotConfig:
     token: str
     group_id: int
+    is_turn_on: bool = True
 
 
 @dataclass
@@ -47,47 +52,29 @@ class Config:
 
 
 def setup_config(app: "Application", config_path: str) -> None:
-    if getenv("STATUS") == "DEV":
-        logger.info("Dev mode activated")
+    with open(config_path, "r") as f:
+        raw_config = yaml.safe_load(f)
 
-        app.config = Config(
-            session=SessionConfig(
-                key="-6b97CSkbEPmpKWCBixxy9yER2IXEyoO19XFj420dKs=",
-            ),
-            admin=AdminConfig(
-                email="admin@admin.com",
-                password="admin",
-            ),
-            bot=BotConfig(
-                token="vk1.a.XIDKJZTUyQ24nViGDAYxN78v2VvAXtu1In2ra9rI9i9Gx6L0KoKS2GFcrjFTfpr71wvatzW9N8_LMwpuZxU5Gi-TYMxE6ybdIZ4NBZeUYRFntpiKUvHPDwVmx4QTCWCAN9rEuVJwhzKAh8BbYM6xZf6hdLoi5nyY5WBoaeaXsd6yfWFZKpzBi5N6zIfmAYFUoTNgjvgRc-hQbTovpHBI6A",
-                group_id=218897004,
-            ),
-            database=DatabaseConfig(
-                host=getenv("DB_HOST"),
-                port=int(getenv("DB_PORT")),
-                user=getenv("DB_USER"),
-                password=getenv("DB_PASSWORD"),
-                database=getenv("DB_NAME"),
-            ),
-            allowed_origins=getenv("ALLOWED_ORIGINS"),
-        )
-        logger.info("Allowed origins: %s", app.config.allowed_origins)
+    session_key = raw_config["session"]["key"]
+    if session_key is None:
+        session_key = Fernet.generate_key()
 
-    else:
-        with open(config_path, "r") as f:
-            raw_config = yaml.safe_load(f)
-
-        app.config = Config(
-            session=SessionConfig(
-                key=raw_config["session"]["key"],
-            ),
-            admin=AdminConfig(
-                email=raw_config["admin"]["email"],
-                password=raw_config["admin"]["password"],
-            ),
-            bot=BotConfig(
-                token=raw_config["bot"]["token"],
-                group_id=raw_config["bot"]["group_id"],
-            ),
-            database=DatabaseConfig(**raw_config["database"]),
-        )
+    app.config = Config(
+        session=SessionConfig(
+            key=session_key,
+            cookie_name=raw_config["session"]["cookie_name"],
+            samesite=raw_config["session"]["samesite"],
+            path=raw_config["session"]["path"],
+            secure=raw_config["session"]["secure"],
+        ),
+        admin=AdminConfig(
+            email=raw_config["admin"]["email"],
+            password=raw_config["admin"]["password"],
+        ),
+        bot=BotConfig(
+            token=raw_config["bot"]["token"],
+            group_id=raw_config["bot"]["group_id"],
+            is_turn_on=raw_config["bot"]["is_turn_on"],
+        ),
+        database=DatabaseConfig(**raw_config["database"]),
+    )
