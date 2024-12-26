@@ -10,7 +10,7 @@ class BlitzThemeSchema(Schema):
 class BlitzQuestionSchema(Schema):
     id = fields.Int(required=False)
     title = fields.Str(required=True, validate=validate.Length(min=1, max=500))
-    theme_id = fields.Int(required=True, default=1, validate=validate.Range(min=1))
+    theme_id = fields.Int(required=False, default=1, validate=validate.Range(min=1))
     answer = fields.Str(required=True, validate=validate.Length(min=1, max=100))
 
 
