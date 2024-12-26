@@ -1,7 +1,11 @@
 debug: true
 
 session:
-  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0=
+  key: CaY5iCkYtN7DqXdiYK1BvmGrQuaSA4Tl4bEk9my0jc0= # Fernet generate key
+  cookie_name: "vk_bot_session_tests"
+  samesite: "Lax"
+  path: "/"
+  secure: False
 admin:
   email: admin@admin.com
   password: admin
@@ -14,3 +18,4 @@ database:
 bot:
   token: vk1.a.N-LUKJ9cCDWHon_xSQ2BAu1K5hjovrP-1CfmZ1O393fcrvRsDfp0-mxZ9BN8F_wCMOTHy0TY71UBUmhKfYP2cPbN4M2szIGZcImr4NjHcC54gO6qXAaNFioxRVlr2O7eSdt8omUAkz3mrwvPCazCwe6l5sZw4m5MZL33sJB04pX4ioCVsiIQPBCowI-9qhEKywr2JT4GoxY9XLINrP6VAA
   group_id: 225776298
+  is_turn_on: False
