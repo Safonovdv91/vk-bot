@@ -59,10 +59,10 @@ def setup_app(config_path: str) -> Application:
         app,
         EncryptedCookieStorage(
             app.config.session.key,
-            cookie_name="vk_bot_session",
-            samesite="None",
-            path="/",
-            secure=True,
+            cookie_name=app.config.session.cookie_name,
+            samesite=app.config.session.samesite,
+            path=app.config.session.path,
+            secure=app.config.session.secure,
         ),
     )
     setup_routes(app)
