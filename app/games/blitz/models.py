@@ -1,0 +1,105 @@
+import typing
+
+from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.games.blitz.constants import BlitzGameStage
+from app.store.database.sqlalchemy_base import BaseModel
+
+if typing.TYPE_CHECKING:
+    from app.blitz.models import GameBlitzQuestion
+
+
+class GameBlitzSettings(BaseModel):
+    __tablename__ = "blitz_game_settings"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    profile_name: Mapped[str] = mapped_column(String[50], nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(String(1000))
+
+    games: Mapped[list["BlitzGame"]] = relationship(back_populates="profile")
+
+    def __str__(self):
+        if self.description:
+            return (
+                f"Профиль № {self.id} - {self.profile_name}\n"
+                f"#### {self.description}\n#####\n"
+            )
+        return f"Профиль № {self.id} - {self.profile_name}"
+
+    def __repr__(self):
+        return str(self)
+
+
+class BlitzGame(BaseModel):
+    __tablename__ = "blitz_games"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    conversation_id: Mapped[int | None] = mapped_column(default=None)
+    pinned_conversation_message_id: Mapped[int | None] = mapped_column(default=None)
+    game_stage: Mapped[PG_ENUM] = mapped_column(PG_ENUM(BlitzGameStage), nullable=False)
+    admin_game_id: Mapped[int | None] = mapped_column(default=None)
+    profile_id: Mapped[int] = mapped_column(ForeignKey("blitz_game_settings.id"), default=1)
+
+    # ОТношения
+
+    question_game: Mapped["GameBlitzQuestion"] = relationship(relationship(back_populates="blitz_game"))
+    blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
+        back_populates="game", cascade="all, delete-orphan"
+    )
+    profile: Mapped["GameBlitzSettings"] = relationship(
+        back_populates="games", cascade="all, delete-orphan"
+    )
+
+    def __str__(self):
+        return (
+            f"Игра № {self.id} - проведенная в беседе {self.conversation_id}"
+            f"находится в режиме {self.game_stage.name}"
+        )
+
+    def __repr__(self):
+        return str(self)
+
+
+class BlitzPlayerQuestionGame(BaseModel):
+    """Сводная таблица с ответами игроков на вопросы
+    Хранит данные кто ответил на вопрос и на какой вопрос в какой игре.
+    """
+
+    __tablename__ = "blitz_player_question_games"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id",
+            "game_id",
+            "question_id",
+            name="idx_unique_blitz_player_game_question",
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    player_id: Mapped[int] = mapped_column(nullable=False)
+
+    game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("blitz_questions.id"), nullable=False
+    )
+
+    game: Mapped["BlitzGame"] = relationship(back_populates="blitz_player_question_game")
+    question: Mapped["GameBlitzQuestion"] = relationship(
+        back_populates="blitz_player_question_game"
+    )
+
+class QuestionGame(BaseModel):
+    "сводная таблица с вопросами к игре для отношение много к многим"
+
+    __tablename__ = "blitz_question_games"
+    __table_args__ = (
+        UniqueConstraint(
+            "question_id",
+            "game_id",
+            name="idx_unique_blitz_question_game",
+        ),
+    )
+    question_id: Mapped[int] = mapped_column(ForeignKey("blitz_questions.id"), nullable=False)
+    game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
+
+    game: Mapped["BlitzGame"] = relationship(back_populates="question_game")
+    question: Mapped["GameBlitzQuestion"] = relationship(back_populates="question_game")
