@@ -38,15 +38,16 @@ class BlitzGame(BaseModel):
     pinned_conversation_message_id: Mapped[int | None] = mapped_column(default=None)
     game_stage: Mapped[PG_ENUM] = mapped_column(PG_ENUM(BlitzGameStage), nullable=False)
     admin_game_id: Mapped[int | None] = mapped_column(default=None)
-    profile_id: Mapped[int] = mapped_column(ForeignKey("blitz_game_settings.id"), default=1)
-
-    profile: Mapped["GameBlitzSettings"] = relationship(
-        back_populates="games"
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("blitz_game_settings.id"), default=1
     )
 
-    # questions: Mapped[list["GameBlitzQuestion"]] = relationship(
-    #     back_populates="game"
-    # )
+    profile: Mapped["GameBlitzSettings"] = relationship(back_populates="games")
+
+    blitz_question_game: Mapped[list["BlitzQuestionGame"]] = relationship(
+        back_populates="blitz_game"
+    )
+
     # blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
     #     back_populates="game", cascade="all, delete-orphan"
     # )
@@ -63,6 +64,7 @@ class BlitzGame(BaseModel):
 
 class GameBlitzPlayer(BaseModel):
     "Таблица игроков в игре блитц"
+
     __tablename__ = "blitz_players"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -72,6 +74,28 @@ class GameBlitzPlayer(BaseModel):
     # blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
     #     back_populates="player", cascade="all, delete-orphan"
     # )
+
+
+class BlitzQuestionGame(BaseModel):
+    __tablename__ = "blitz_question_games"
+    __table_args__ = (
+        UniqueConstraint(
+            "question_id",
+            "game_id",
+            name="idx_unique_blitz_question_game",
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("blitz_questions.id"), nullable=False
+    )
+    game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
+
+    blitz_game: Mapped["BlitzGame"] = relationship(back_populates="blitz_question_game")
+    blitz_question: Mapped["GameBlitzQuestion"] = relationship(
+        back_populates="blitz_question_game"
+    )
 
 
 # class BlitzPlayerQuestionGame(BaseModel):
@@ -101,21 +125,3 @@ class GameBlitzPlayer(BaseModel):
 #     player: Mapped["GameBlitzPlayer"] = relationship(back_populates="blitz_player_question_game")
 #     question: Mapped["GameBlitzQuestion"] = relationship(back_populates="blitz_player_question_game")
 #     game: Mapped["BlitzGame"] = relationship(back_populates="blitz_player_question_game")
-
-
-# class BlitzQuestionGame(BaseModel):
-#     __tablename__ = "blitz_question_games"
-#     __table_args__ = (
-#         UniqueConstraint(
-#             "question_id",
-#             "game_id",
-#             name="idx_unique_blitz_question_game",
-#         ),
-#     )
-#     id: Mapped[int] = mapped_column(primary_key=True)
-#
-#     question_id: Mapped[int] = mapped_column(ForeignKey("blitz_questions.id"), nullable=False)
-#     game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
-#
-#     blitz_game: Mapped["BlitzGame"] = relationship(back_populates="blitz_question_game")
-#     question: Mapped["GameBlitzQuestion"] = relationship(back_populates="blitz_question_game")
