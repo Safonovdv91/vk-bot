@@ -45,12 +45,11 @@ class BlitzGame(BaseModel):
     profile: Mapped["GameBlitzSettings"] = relationship(back_populates="games")
 
     blitz_question_game: Mapped[list["BlitzQuestionGame"]] = relationship(
-        back_populates="blitz_game"
+        back_populates="blitz_game", cascade="all, delete-orphan"
     )
-
-    # blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
-    #     back_populates="game", cascade="all, delete-orphan"
-    # )
+    blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
+        back_populates="blitz_game", cascade="all, delete-orphan"
+    )
 
     def __str__(self):
         return (
@@ -71,9 +70,9 @@ class GameBlitzPlayer(BaseModel):
     vk_user_id: Mapped[int] = mapped_column(nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String[50])
 
-    # blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
-    #     back_populates="player", cascade="all, delete-orphan"
-    # )
+    blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
+        back_populates="blitz_player", cascade="all, delete-orphan"
+    )
 
 
 class BlitzQuestionGame(BaseModel):
@@ -98,30 +97,30 @@ class BlitzQuestionGame(BaseModel):
     )
 
 
-# class BlitzPlayerQuestionGame(BaseModel):
-#     """Сводная таблица где отмечено какой игрок в какой игре ответил на вопрос
-#     player_id - идентификатор игрока
-#     game_id - идентификатор игры
-#     question_id - идентификатор вопроса
-#     """
-#
-#     __tablename__ = "blitz_player_question_games"
-#     __table_args__ = (
-#         UniqueConstraint(
-#             "player_id",
-#             "game_id",
-#             "question_id",
-#             name="idx_unique_blitz_player_game_question",
-#         ),
-#     )
-#     id: Mapped[int] = mapped_column(primary_key=True)
-#
-#     player_id: Mapped[int] = mapped_column(ForeignKey("blitz_players.id"), nullable=False)
-#     game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
-#     question_id: Mapped[int] = mapped_column(
-#         ForeignKey("blitz_questions.id"), nullable=False
-#     )
-#
-#     player: Mapped["GameBlitzPlayer"] = relationship(back_populates="blitz_player_question_game")
-#     question: Mapped["GameBlitzQuestion"] = relationship(back_populates="blitz_player_question_game")
-#     game: Mapped["BlitzGame"] = relationship(back_populates="blitz_player_question_game")
+class BlitzPlayerQuestionGame(BaseModel):
+    """Сводная таблица где отмечено какой игрок в какой игре ответил на вопрос
+    player_id - идентификатор игрока
+    game_id - идентификатор игры
+    question_id - идентификатор вопроса
+    """
+
+    __tablename__ = "blitz_player_question_games"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id",
+            "game_id",
+            "question_id",
+            name="idx_unique_blitz_player_game_question",
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    player_id: Mapped[int] = mapped_column(ForeignKey("blitz_players.id"), nullable=False)
+    game_id: Mapped[int] = mapped_column(ForeignKey("blitz_games.id"), nullable=False)
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("blitz_questions.id"), nullable=False
+    )
+
+    blitz_player: Mapped["GameBlitzPlayer"] = relationship(back_populates="blitz_player_question_game")
+    blitz_question: Mapped["GameBlitzQuestion"] = relationship(back_populates="blitz_player_question_game")
+    blitz_game: Mapped["BlitzGame"] = relationship(back_populates="blitz_player_question_game")
