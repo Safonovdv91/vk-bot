@@ -8,7 +8,7 @@ from aiohttp.web_exceptions import (
     HTTPNotFound,
     HTTPServiceUnavailable,
 )
-from sqlalchemy import delete, update
+from sqlalchemy import delete, func, update
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -19,6 +19,7 @@ from app.quiz.models import (
     Question,
     Theme,
 )
+from tests.conftest import logger
 
 if TYPE_CHECKING:
     from app.web.app import Application
@@ -32,8 +33,11 @@ class QuizAccessor(BaseAccessor):
             self.logger.info("Создаем базовую тему.")
             await self.create_theme(title="default", description="default theme")
 
-        if await self.get_question_by_id(3) is None:
-            self.logger.info("Создаем базовые вопросы")
+        count_questions = await self.get_questions_count(theme_id=1)
+        logger.info("В базе %s вопросов", count_questions)
+
+        if count_questions == 0:
+            self.logger.info("В базовой теме нет вопросов, добавляем стандартные")
             for question in create_new_data():
                 await self.create_question(
                     title=question.title,
@@ -216,6 +220,22 @@ class QuizAccessor(BaseAccessor):
             else:
                 self.logger.info("Вопрос с %s успешно удален", question.id)
                 return question
+
+    async def get_questions_count(self, theme_id: int | None = 1) -> int:
+        async with self.app.database.session() as session:
+            try:
+                count_query = (
+                    select(func.count())
+                    .select_from(Question)
+                    .where(Question.theme_id == theme_id)
+                )
+                result = await session.execute(count_query)
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            return result.scalar()
 
     async def update_question(
         self,
