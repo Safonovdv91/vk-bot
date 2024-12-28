@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
-from app.quiz.data import default_questions
+from app.quiz.data import create_new_data
 from app.quiz.models import (
     Answer,
     Question,
@@ -32,9 +32,9 @@ class QuizAccessor(BaseAccessor):
             self.logger.info("Создаем базовую тему.")
             await self.create_theme(title="default", description="default theme")
 
-        if await self.get_question_by_id(1) is None:
+        if await self.get_question_by_id(3) is None:
             self.logger.info("Создаем базовые вопросы")
-            for question in default_questions:
+            for question in create_new_data():
                 await self.create_question(
                     title=question.title,
                     theme_id=question.theme_id,
