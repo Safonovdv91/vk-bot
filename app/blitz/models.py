@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.games.blitz.models import BlitzGame
+from app.games.blitz.models import BlitzGame, BlitzQuestionGame, BlitzPlayerQuestionGame
 from app.store.database.sqlalchemy_base import BaseModel
 
 
@@ -20,13 +20,15 @@ class GameBlitzQuestion(BaseModel):
     __tablename__ = "blitz_questions"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String[500], index=True)
-
-    theme_id: Mapped[int] = mapped_column(ForeignKey("blitz_themes.id"))
-    theme: Mapped["GameBlitzTheme"] = relationship(back_populates="questions")
     answer: Mapped[str] = mapped_column(String[100])
+    theme_id: Mapped[int] = mapped_column(ForeignKey("blitz_themes.id"))
 
+    theme: Mapped["GameBlitzTheme"] = relationship(back_populates="questions")
     game: Mapped["BlitzGame"] = relationship(back_populates="questions")
 
+    blitz_question_game: Mapped[list["BlitzQuestionGame"]] = relationship(
+        back_populates="question", cascade="all, delete-orphan"
+    )
     blitz_player_question_game: Mapped[list["BlitzPlayerQuestionGame"]] = relationship(
         back_populates="question", cascade="all, delete-orphan"
     )
