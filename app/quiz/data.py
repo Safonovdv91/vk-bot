@@ -4,8 +4,8 @@ from app.quiz.models import Answer, Question
 
 logger = logging.getLogger(__name__)
 
-def create_new_data():
 
+def create_new_data():
     answers1 = [
         Answer(title="Еду", score=43),
         Answer(title="свадьбу", score=27),
