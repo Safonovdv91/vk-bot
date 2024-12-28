@@ -121,6 +121,12 @@ class BlitzPlayerQuestionGame(BaseModel):
         ForeignKey("blitz_questions.id"), nullable=False
     )
 
-    blitz_player: Mapped["GameBlitzPlayer"] = relationship(back_populates="blitz_player_question_game")
-    blitz_question: Mapped["GameBlitzQuestion"] = relationship(back_populates="blitz_player_question_game")
-    blitz_game: Mapped["BlitzGame"] = relationship(back_populates="blitz_player_question_game")
+    blitz_player: Mapped["GameBlitzPlayer"] = relationship(
+        back_populates="blitz_player_question_game"
+    )
+    blitz_question: Mapped["GameBlitzQuestion"] = relationship(
+        back_populates="blitz_player_question_game"
+    )
+    blitz_game: Mapped["BlitzGame"] = relationship(
+        back_populates="blitz_player_question_game"
+    )
