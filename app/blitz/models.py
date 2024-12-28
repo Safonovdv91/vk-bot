@@ -24,7 +24,7 @@ class GameBlitzQuestion(BaseModel):
     theme_id: Mapped[int] = mapped_column(ForeignKey("blitz_themes.id"))
 
     theme: Mapped["GameBlitzTheme"] = relationship(back_populates="questions")
-    game: Mapped["BlitzGame"] = relationship(back_populates="questions")
+    # game: Mapped["BlitzGame"] = relationship(back_populates="questions")
 
     # blitz_question_game: Mapped[list["BlitzQuestionGame"]] = relationship(
     #     back_populates="question", cascade="all, delete-orphan"
