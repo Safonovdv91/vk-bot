@@ -1,3 +1,5 @@
+import logging
+
 from aiohttp.web import (
     Application as AiohttpApplication,
     Request as AiohttpRequest,
@@ -8,11 +10,11 @@ from aiohttp_session import setup as session_setup
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from app.admin.models import AdminModel
+from app.logger.logger import setup_logging
 from app.store import Store
 from app.store.database.database import Database
 from app.store.store import setup_store
 from app.web.config import Config, setup_config
-from app.web.logger import setup_logging
 from app.web.mw import setup_middlewares
 from app.web.routes import setup_routes
 
@@ -53,7 +55,7 @@ app = Application()
 
 
 def setup_app(config_path: str) -> Application:
-    setup_logging(app)
+    setup_logging(app, sh_logging_level=logging.DEBUG, fh_logging_level=logging.WARNING)
     setup_config(app, config_path)
     session_setup(
         app,

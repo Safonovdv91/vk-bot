@@ -46,7 +46,7 @@ class VkApiAccessor(BaseAccessor):
         self.server: str | None = None
         self.poller: Poller | None = None
         self.ts: int | None = None
-        self.logger = getLogger("VkApiAccessor")
+        self.logger = getLogger(__name__)
 
     async def worker(self, queue):
         """Воркер получения сообщений от ВК, сортирует их по событиям
@@ -136,7 +136,7 @@ class VkApiAccessor(BaseAccessor):
             self.server = data["server"]
             self.ts = data["ts"]
 
-        self.logger.info("Ключ равен: %s", self.key)
+        self.logger.info("Бот запущен для группы: %s", self.app.config.bot.group_id)
 
     async def poll(self):
         async with self.session.get(
@@ -157,7 +157,7 @@ class VkApiAccessor(BaseAccessor):
                 return
 
             data = await response.json()
-            self.logger.info("data: %s", data)
+            self.logger.debug("data: %s", data)
 
             if data == {"failed": 2} or data == {"failed": 3}:
                 self.logger.error("Необходимо обновить ключ LongPoll")
