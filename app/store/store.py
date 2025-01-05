@@ -12,13 +12,14 @@ class Store:
         from app.store.blitz.accessor import BlitzAccessor
         from app.store.game.accessor import GameAccessor, GameSettingsAccessor
         from app.store.game.manager import BotManager
-        from app.store.quiz.accessor import QuizAccessor
+        from app.store.quiz.accessor import QuizAccessor, VkMessageAccessor
         from app.store.vk_api.accessor import VkApiAccessor
 
         self.quizzes = QuizAccessor(app)
         self.blitzes = BlitzAccessor(app)
         self.admins = AdminAccessor(app)
         self.vk_api = VkApiAccessor(app)
+        self.vk_messages = VkMessageAccessor(app)
 
         self.bots_manager = BotManager(app)
         self.game_accessor = GameAccessor(app)
