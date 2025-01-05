@@ -49,7 +49,13 @@ class BotManager:
             message = update.object.message.text
             from_id = update.object.message.from_id
 
-            if not self.games:
+            await self.app.store.vk_messages.add_message(
+                conversation_id=conversation_id,
+                text=message,
+                user_id=from_id,
+            )
+
+            if not self.games:  # Есть ли вообще игры
                 await self.setup_game_store()
 
             if conversation_id in self.games and self.games[
