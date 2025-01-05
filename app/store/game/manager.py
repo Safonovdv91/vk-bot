@@ -2,7 +2,7 @@ import typing
 from logging import getLogger
 
 from app.games.game_100.constants import GameStage
-from app.games.game_100.logic import GameLogic
+from app.games.game_100.logic import Game100Logic
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -15,7 +15,7 @@ if typing.TYPE_CHECKING:
 class BotManager:
     def __init__(self, app: "Application"):
         self.app = app
-        self.logger = getLogger("BotManager")
+        self.logger = getLogger(__name__)
         self.games: dict = {}
 
     async def handle_events(self, events: list[EventUpdate]):
@@ -61,6 +61,7 @@ class BotManager:
                 game = await self.app.store.game_accessor.add_game(
                     peer_id=conversation_id
                 )
+
                 if game is None:
                     self.logger.error("Не удалось создать игру")
                     await self.app.store.vk_api.send_message(
@@ -70,28 +71,28 @@ class BotManager:
                     return
 
                 game = await self.app.store.game_accessor.get_game_by_id(game.id)
-                new_game_logic = GameLogic(
+                new_game_100_1 = Game100Logic(
                     app=self.app,
                     game_model=game,
                 )
 
-                self.games[conversation_id] = new_game_logic
-                self.logger.info("Создаем новую модель игры \n %s", new_game_logic)
+                self.games[conversation_id] = new_game_100_1
+                self.logger.info("Создаем новую модель игры \n %s", new_game_100_1)
 
             game = self.games[conversation_id]
-            if message == "/start":
+            if message == "/start_100":
                 await game.start_game(admin_id=from_id)
 
             await game.waiting_answer(user_id=from_id, answer=message)
 
             if message == "/stop":
-                cansel_game: GameLogic = self.games[conversation_id]
+                cansel_game: Game100Logic = self.games[conversation_id]
 
                 if await cansel_game.cancel_game(from_id):
                     self.games.pop(conversation_id)
 
             if message == "/finish":
-                cansel_game: GameLogic = self.games[conversation_id]
+                cansel_game: Game100Logic = self.games[conversation_id]
 
                 if await cansel_game.end_game(from_id):
                     self.games.pop(conversation_id)
@@ -101,11 +102,11 @@ class BotManager:
         self.logger.info("Инициализируем загрузку игр в БД")
         for game in await self.app.store.game_accessor.get_active_games():
             self.games[
-                GameLogic(
+                Game100Logic(
                     app=self.app,
                     game_model=game,
                 ).conversation_id
-            ] = GameLogic(
+            ] = Game100Logic(
                 app=self.app,
                 game_model=game,
             )

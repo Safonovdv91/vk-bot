@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class GameLogic:
+class Game100Logic:
     def __init__(
         self,
         app: "Application",
