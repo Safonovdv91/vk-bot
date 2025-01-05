@@ -19,6 +19,7 @@ from app.quiz.models import (
     Question,
     Theme,
 )
+from app.vk.models import VkMessage
 from tests.conftest import logger
 
 if TYPE_CHECKING:
@@ -277,3 +278,78 @@ class QuizAccessor(BaseAccessor):
                 self.logger.exception(exc_info=exc, msg=exc)
                 await session.rollback()  # Откатываем транзакцию перед повторной попыткой
                 raise HTTPServiceUnavailable from exc
+
+
+class VkMessageAccessor(BaseAccessor):
+    async def connect(self, app: "Application") -> None:
+        self.logger.info("Подключаем VKMessageAccessor")
+        count_messages = await self.get_messages_count()
+        logger.info("В базе %s сообщений", count_messages)
+
+    async def add_message(self, conversation_id, text: str, user_id: int) -> VkMessage:
+        async with self.app.database.session() as session:
+            message: VkMessage = VkMessage(
+                conversation_id=conversation_id,
+                text=text,
+                user_id=user_id,
+            )
+            self.logger.info("Добавляем в базу данных %s", message)
+
+            try:
+                session.add(message)
+                await session.commit()
+
+            except sqlalchemy.exc.IntegrityError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPConflict(reason="Не удалось добавить тему") from exc
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            except Exception as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            return message
+
+    async def get_messages_count(self) -> int:
+        async with self.app.database.session() as session:
+            try:
+                count_query = select(func.count()).select_from(VkMessage)
+                result = await session.execute(count_query)
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            return result.scalar()
+
+    async def get_messages_list(
+        self,
+        conversation_id: int | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ):
+        if conversation_id is None:
+            raise HTTPBadRequest
+
+        stmt = select(VkMessage).where(VkMessage.conversation_id == int(conversation_id))
+
+        if limit:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
+        try:
+            async with self.app.database.session() as session:
+                messages = await session.scalars(stmt)
+        except Exception as exc:
+            self.logger.exception(exc_info=exc, msg=exc)
+            raise HTTPServiceUnavailable from exc
+
+        vk_messages = messages.unique().all()
+
+        if len(vk_messages) == 0:
+            raise HTTPNotFound
+
+        return vk_messages
