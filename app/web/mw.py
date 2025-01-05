@@ -75,6 +75,7 @@ async def cors_middleware(request: "Request", handler):
 
     if origin is None:
         logger.warning("Origin is None")
+        logger.warning("headHeaders: %s", request.headers)
         origin = "*"
 
     logger.info("Origin: %s", origin)
