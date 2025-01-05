@@ -139,6 +139,7 @@ class VkApiAccessor(BaseAccessor):
         self.logger.info("Бот запущен для группы: %s", self.app.config.bot.group_id)
 
     async def poll(self):
+        """Получение сообщений от ВК с помощью поллера"""
         async with self.session.get(
             self._build_query(
                 host=self.server,
