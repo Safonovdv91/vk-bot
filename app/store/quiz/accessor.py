@@ -353,3 +353,22 @@ class VkMessageAccessor(BaseAccessor):
             raise HTTPNotFound
 
         return vk_messages
+
+    async def get_conversations_list(
+        self,
+    ):
+        stmt = select(VkMessage).distinct(VkMessage.conversation_id)
+
+        try:
+            async with self.app.database.session() as session:
+                messages = await session.scalars(stmt)
+        except Exception as exc:
+            self.logger.exception(exc_info=exc, msg=exc)
+            raise HTTPServiceUnavailable from exc
+
+        vk_messages = messages.unique().all()
+
+        if len(vk_messages) == 0:
+            raise HTTPNotFound
+
+        return vk_messages

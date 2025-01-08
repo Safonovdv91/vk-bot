@@ -29,3 +29,23 @@ class MessagesListView(AuthRequiredMixin, View):
         data = VkMessageListSchema().dump({"vk_messages": messages})
 
         return json_response(data=data)
+
+
+class ConversationsListView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Vk_messages"],
+        summary="Отобразить список Бесед vk",
+        description="""
+        Отобразить список бесед в БД вк
+        """,
+    )
+    # @querystring_schema()
+    # @response_schema(VkMessageListSchema)
+    async def get(self):
+        # conversation_id = int(self.request.query.get("conversation_id"))
+        # limit = self.request.query.get("limit")
+        # offset = self.request.query.get("offset")
+        conversations = await self.store.vk_messages.get_conversations_list()
+        data = VkMessageListSchema().dump({"vk_messages": conversations})
+
+        return json_response(data=data)
