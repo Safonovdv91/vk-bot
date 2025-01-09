@@ -19,11 +19,16 @@ def setup_logging(
     sh.setLevel(sh_logging_level)
     sh.setFormatter(logging.Formatter(format_logger))
 
-    err_fh = logging.handlers.RotatingFileHandler(filename="app/logger/err_logfile.log")
+    log_file_path = "app/logger/"
+    err_fh = logging.handlers.RotatingFileHandler(
+        filename=log_file_path + "err_logfile.log"
+    )
     err_fh.setFormatter(logging.Formatter(format_logger))
     err_fh.setLevel(logging.ERROR)
 
-    full_log = logging.handlers.RotatingFileHandler(filename="app/logger/logfile.log")
+    full_log = logging.handlers.RotatingFileHandler(
+        filename=log_file_path + "logfile.log"
+    )
     full_log.setFormatter(logging.Formatter(format_logger))
     full_log.setLevel(fh_logging_level)
 
