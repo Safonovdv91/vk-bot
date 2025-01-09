@@ -37,14 +37,15 @@ class ConversationsListView(AuthRequiredMixin, View):
         summary="Отобразить список Бесед vk",
         description="""
         Отобразить список бесед в БД вк
+        Response: 
+        "conversation_id": int - идентификатор беседы
+        "text":str - текст ПОСЛЕДНЕГО сообщения,
+        "user_id": int - идентификатор пользователя последнего сообщения в беседе,
+        "date": DATE - дата этого сообщения
         """,
     )
-    # @querystring_schema()
-    # @response_schema(VkMessageListSchema)
+    @response_schema(VkMessageListSchema)
     async def get(self):
-        # conversation_id = int(self.request.query.get("conversation_id"))
-        # limit = self.request.query.get("limit")
-        # offset = self.request.query.get("offset")
         conversations = await self.store.vk_messages.get_conversations_list()
         data = VkMessageListSchema().dump({"vk_messages": conversations})
 
