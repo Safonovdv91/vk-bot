@@ -332,7 +332,7 @@ class VkMessageAccessor(BaseAccessor):
         limit: int | None = None,
     ):
         if conversation_id is None:
-            raise HTTPBadRequest
+            raise HTTPBadRequest(reason="Не указан идентификатор чата")
 
         stmt = select(VkMessage).where(VkMessage.conversation_id == int(conversation_id))
 

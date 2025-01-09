@@ -20,7 +20,7 @@ class MessagesListView(AuthRequiredMixin, View):
     @querystring_schema(VkMessageListQuerySchema)
     @response_schema(VkMessageListSchema)
     async def get(self):
-        conversation_id = int(self.request.query.get("conversation_id"))
+        conversation_id = self.request.query.get("conversation_id")
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
         messages = await self.store.vk_messages.get_messages_list(
