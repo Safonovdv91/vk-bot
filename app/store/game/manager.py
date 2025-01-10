@@ -1,4 +1,5 @@
 import typing
+from abc import abstractmethod, ABC
 from logging import getLogger
 
 from app.games.game_100.constants import GameStage
@@ -19,7 +20,7 @@ class BotManager:
         self.games: dict = {}
 
     async def handle_events(self, events: list[EventUpdate]):
-        """Обработка callback событий"""
+        """Обработка callback событий - событий при нажатие на кнопки"""
         for event in events:
             conversation_id = event.object.peer_id
             payload_text = event.object.payload.text
@@ -43,7 +44,10 @@ class BotManager:
                 self.logger.error("Пришло эвент сообщение в несуществующую игру")
 
     async def handle_updates(self, updates: list[MessageUpdate]):
-        """Обработка пришедших сообщений"""
+        """Обработка пришедших сообщений от пользователей
+        """
+
+        # todo Необходимо разбить его на несколько этапов
         for update in updates:
             conversation_id = update.object.message.peer_id
             message = update.object.message.text
@@ -54,9 +58,11 @@ class BotManager:
                 text=message,
                 user_id=from_id,
             )
-
+            # Проверка на существование игры
             if not self.games:  # Есть ли вообще игры
                 await self.setup_game_store()
+            # Если игра не отмененная и не финишированная то значит она запущена
+            # и надо запускать ее логику
 
             if conversation_id in self.games and self.games[
                 conversation_id
@@ -116,3 +122,56 @@ class BotManager:
                 app=self.app,
                 game_model=game,
             )
+
+
+class AbstractGameManager(ABC):
+    """ Класс для работы с играми
+    Принцип работы.
+    при инициализации проверяется списко игр, если пустой - скорее всего бот перезапущен.
+    Если список пустой, то загружаем игры в словарь из БД.
+
+    При получении сообщения проверяем есть ли игра в словаре, если нет - создаем новую игру.
+    При получении callback события проверяем есть ли игра в словаре, если нет - создаем новую игру.
+
+    Если игра есть  - то проверяем
+    """
+    def __init__(self, app: "Application"):
+        self.app = app
+        self.logger = getLogger(__name__)
+        self.games: dict = {}
+
+    async def start_game(self):
+        self.logger.info("Начинаем игру")
+        pass
+
+    async def stop_game(self):
+        self.logger.info("Останавливаем игру")
+        pass
+
+    async def finish_game(self):
+        self.logger.info("Завершаем игру")
+        pass
+
+    async def cancel_game(self):
+        self.logger.info("Отменяем игру")
+        pass
+
+    async def pause_game(self):
+        self.logger.info("Приостанавливаем игру")
+        pass
+
+    async def resume_game(self):
+        self.logger.info("Возобновляем игру")
+        pass
+
+    async def _load_game_to_inner_memeory(self, events: list[EventUpdate]):
+        """Загрузка игр в словарь из БД"""
+        pass
+
+
+class GameManager(AbstractGameManager):
+
+    def __init__(self, app: "Application"):
+        super.__init__(app)
+        self.logger = getLogger(__name__)
+        self.games: dict = {}
