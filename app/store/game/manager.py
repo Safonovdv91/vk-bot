@@ -3,7 +3,6 @@ from abc import abstractmethod, ABC
 from logging import getLogger
 
 from app.games.game_100.constants import GameStage
-from app.games.game_100.logic import Game100Logic
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -11,6 +10,7 @@ from app.store.vk_api.dataclasses import (
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
+    from app.games.game_100.logic import Game100Logic
 
 
 class BotManager:
@@ -140,30 +140,37 @@ class AbstractGameManager(ABC):
         self.logger = getLogger(__name__)
         self.games: dict = {}
 
+    @abstractmethod
     async def start_game(self):
         self.logger.info("Начинаем игру")
         pass
 
+    @abstractmethod
     async def stop_game(self):
         self.logger.info("Останавливаем игру")
         pass
 
+    @abstractmethod
     async def finish_game(self):
         self.logger.info("Завершаем игру")
         pass
 
+    @abstractmethod
     async def cancel_game(self):
         self.logger.info("Отменяем игру")
         pass
 
+    @abstractmethod
     async def pause_game(self):
         self.logger.info("Приостанавливаем игру")
         pass
 
+    @abstractmethod
     async def resume_game(self):
         self.logger.info("Возобновляем игру")
         pass
 
+    @abstractmethod
     async def _load_game_to_inner_memeory(self, events: list[EventUpdate]):
         """Загрузка игр в словарь из БД"""
         pass
@@ -172,6 +179,9 @@ class AbstractGameManager(ABC):
 class GameManager(AbstractGameManager):
 
     def __init__(self, app: "Application"):
-        super.__init__(app)
+        super().__init__(app)
         self.logger = getLogger(__name__)
         self.games: dict = {}
+
+    async def start_game(self):
+        pass

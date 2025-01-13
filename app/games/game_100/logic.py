@@ -6,6 +6,7 @@ import sqlalchemy.orm.exc
 
 from app.games.game_100.constants import GameStage
 from app.games.game_100.models import Game, Player
+from app.store.game.manager import AbstractGameManager
 from app.store.vk_api.dataclasses import VkUser
 from app.store.vk_api.utils import VkButton, VkKeyboard
 
@@ -13,12 +14,13 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class Game100Logic:
+class Game100Logic(AbstractGameManager):
     def __init__(
         self,
         app: "Application",
         game_model: Game,
     ):
+        super().__init__(app)
         self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
