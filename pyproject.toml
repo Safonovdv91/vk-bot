@@ -109,7 +109,6 @@ extend-ignore = [
     "PLR0913",  # https://docs.astral.sh/ruff/rules/too-many-arguments – может оказаться слишком жестко для ребят
     "PLR1714",  # https://docs.astral.sh/ruff/rules/repeated-equality-comparison – бывают неадекватные срабатывания
     "PERF203",  # https://docs.astral.sh/ruff/rules/try-except-in-loop – я бы включил, но сами таким грешим, не думаю, что крит
-    "PT004",    # https://docs.astral.sh/ruff/rules/pytest-missing-fixture-name-underscore/ - Исторические удалено
 
     # нигде не придерживались такого подхода
     "PT007",    # https://docs.astral.sh/ruff/rules/pytest-parametrize-values-wrong-type – не считаю критичным

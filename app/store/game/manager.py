@@ -1,5 +1,5 @@
 import typing
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from logging import getLogger
 
 from app.games.game_100.constants import GameStage
@@ -9,8 +9,8 @@ from app.store.vk_api.dataclasses import (
 )
 
 if typing.TYPE_CHECKING:
-    from app.web.app import Application
     from app.games.game_100.logic import Game100Logic
+    from app.web.app import Application
 
 
 class BotManager:
@@ -44,9 +44,7 @@ class BotManager:
                 self.logger.error("Пришло эвент сообщение в несуществующую игру")
 
     async def handle_updates(self, updates: list[MessageUpdate]):
-        """Обработка пришедших сообщений от пользователей
-        """
-
+        """Обработка пришедших сообщений от пользователей"""
         # todo Необходимо разбить его на несколько этапов
         for update in updates:
             conversation_id = update.object.message.peer_id
@@ -125,16 +123,20 @@ class BotManager:
 
 
 class AbstractGameManager(ABC):
-    """ Класс для работы с играми
+    """Класс для работы с играми
     Принцип работы.
-    при инициализации проверяется списко игр, если пустой - скорее всего бот перезапущен.
+    при инициализации проверяется списко игр, если пустой -
+    скорее всего бот перезапущен.
     Если список пустой, то загружаем игры в словарь из БД.
 
-    При получении сообщения проверяем есть ли игра в словаре, если нет - создаем новую игру.
-    При получении callback события проверяем есть ли игра в словаре, если нет - создаем новую игру.
+    При получении сообщения проверяем есть ли игра в словаре, если нет
+    - создаем новую игру.
+    При получении callback события проверяем есть ли игра в словаре, если нет
+    - создаем новую игру.
 
     Если игра есть  - то проверяем
     """
+
     def __init__(self, app: "Application"):
         self.app = app
         self.logger = getLogger(__name__)
@@ -143,41 +145,33 @@ class AbstractGameManager(ABC):
     @abstractmethod
     async def start_game(self):
         self.logger.info("Начинаем игру")
-        pass
 
     @abstractmethod
     async def stop_game(self):
         self.logger.info("Останавливаем игру")
-        pass
 
     @abstractmethod
     async def finish_game(self):
         self.logger.info("Завершаем игру")
-        pass
 
     @abstractmethod
     async def cancel_game(self):
         self.logger.info("Отменяем игру")
-        pass
 
     @abstractmethod
     async def pause_game(self):
         self.logger.info("Приостанавливаем игру")
-        pass
 
     @abstractmethod
     async def resume_game(self):
         self.logger.info("Возобновляем игру")
-        pass
 
     @abstractmethod
     async def _load_game_to_inner_memeory(self, events: list[EventUpdate]):
         """Загрузка игр в словарь из БД"""
-        pass
 
 
 class GameManager(AbstractGameManager):
-
     def __init__(self, app: "Application"):
         super().__init__(app)
         self.logger = getLogger(__name__)
