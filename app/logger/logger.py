@@ -15,7 +15,7 @@ def setup_logging(
     format_logger = "%(asctime)s - %(name)s:%(lineno)s - %(levelname)s - %(message)s"
     logger.setLevel(10)
 
-    sh = logging.StreamHandler()  # отображение в экран
+    sh = logging.StreamHandler()
     sh.setLevel(sh_logging_level)
     sh.setFormatter(logging.Formatter(format_logger))
 
