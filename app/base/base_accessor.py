@@ -15,8 +15,6 @@ class BaseAccessor:
 
     async def connect(self, app: "Application"):
         self.logger.info("Connected to database")
-        return
 
     async def disconnect(self, app: "Application"):
         self.logger.info("Disconnected from database")
-        return
