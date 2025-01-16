@@ -1,7 +1,6 @@
 import typing
 
 from app.store.database.database import Database
-from app.store.game.manager import GameManager
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application

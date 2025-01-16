@@ -8,7 +8,6 @@ from logging import getLogger
 from app.blitz.models import GameBlitzQuestion
 
 if typing.TYPE_CHECKING:
-    from app.games.game_100.logic import Game100Logic
     from app.web.app import Application
 
 
@@ -53,8 +52,7 @@ class AbstractGame(ABC):
 
     @abstractmethod
     def handle_message(self, message: str, user_id: int, conversation_id: int):
-        """ECho залупа"""
-        pass
+        """Обработка сообщения ботом"""
 
 
 @dataclass
@@ -75,9 +73,9 @@ class GameBlitz(AbstractGame):
         self,
         app: "Application",
         game_stage: BlitzGameStage = BlitzGameStage.WAIT_ANSWER,
-        conversation_id: int = None,
-        admin_id: int = None,
-        questions: list[GameBlitzQuestion] = None,
+        conversation_id: int | None = None,
+        admin_id: int = 13007796,
+        questions: list[GameBlitzQuestion] | None = None,
     ):
         self.app = app
         self.logger = getLogger(__name__)
@@ -112,27 +110,33 @@ class GameBlitz(AbstractGame):
                 self.conversation_id, self.questions[self.id_current_question].title
             )
             return True
-        else:
-            self.logger.info("Все вопросы заданы")
-            await self.finish_game()
-            return False
+
+        self.logger.info("Все вопросы заданы")
+        await self.finish_game()
+        return False
 
     async def handle_message(self, message: str, user_id: int, conversation_id: int):
         self.logger.info("Обработка сообщения и логики бота")
 
         if self._game_stage == BlitzGameStage.WAIT_ANSWER:
             self.logger.info("Ожидание ответа")
+
             if self._is_true_answer(self.id_current_question, message):
                 user = self._add_point_score_to_user(user_id)
-                msg = f"Пользователь {user_id} дал правильный ответ, у него теперь {user.user_score} очков"
+                msg = (
+                    f"Пользователь {user_id} дал правильный ответ,"
+                    f" у него теперь {user.user_score} очков"
+                )
                 self.logger.info("[%s]: %s", conversation_id, msg)
                 await self.app.store.vk_api.send_message(conversation_id, msg)
+
                 if await self.next_question():
                     return True
-                else:
-                    await self.stop_game()
 
+                await self.stop_game()
                 return True
+
+        return False
 
     async def start_game(self):
         self.logger.info("Начало игры")

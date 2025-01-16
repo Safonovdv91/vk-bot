@@ -152,7 +152,7 @@ class Game100Logic(AbstractGame):
         )
 
     async def start_game(self, admin_id: int):
-        self.logger.info(f"Началась игра {self.game_id}")
+        self.logger.info("Началась игра: %s", self.game_id)
         if self.game_state == GameStage.WAIT_INIT:
             self.game_model.admin_game_id = admin_id
             await self.app.store.game_accessor.change_admin_game_id(
@@ -491,6 +491,4 @@ class Game100Logic(AbstractGame):
         self.logger.info("Возобновление игры")
 
     async def handle_message(self, message: str, user_id: int, conversation_id: int):
-        """
-        Функция обрабатывает сообщения от пользователей
-        """
+        """Функция обрабатывает сообщения от пользователей"""

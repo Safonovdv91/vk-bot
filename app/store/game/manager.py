@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 from logging import getLogger
 
 from app.games.blitz.logic import AbstractGame, GameBlitz
-from app.games.game_100.constants import GameStage
-from app.games.game_100.logic import Game100Logic
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -31,7 +29,7 @@ class AbstractGameManager(ABC):
 
     @abstractmethod
     async def handle_message(self, message: str, user_id: int, conversation_id: int):
-        """ "Функция обработки сообщения
+        """Функция обработки сообщения
         message: - текст сообщения
         user_id: - id пользователя(от которого пришло сообщение)
         """
@@ -62,8 +60,8 @@ class GameManager(AbstractGameManager):
         game_manager = self._active_games.get(conversation_id)
         if game_manager:
             return game_manager
-        else:
-            return None
+
+        return None
 
     async def _load_game_to_inner_memeory(self):
         self.logger.info("Загружаем активные игру в словарь игр")
@@ -108,7 +106,7 @@ class GameManager(AbstractGameManager):
                 await self.app.store.vk_api.send_message(
                     user_id, "Сейчас игра уже запущена"
                 )
-            if message == "/stop":
+            elif message == "/stop":
                 return await self._stop_game(conversation_id, game)
 
             elif message == "/pause":
@@ -119,21 +117,20 @@ class GameManager(AbstractGameManager):
 
             else:
                 return await game.handle_message(message, user_id, conversation_id)
-        else:
-            if message == "/start_blitz":
-                theme_id = 1
-                offset = 0
-                limit = 10
-                questions = await self.app.store.blitzes.get_questions_list(
-                    theme_id, offset, limit
-                )
-                game = GameBlitz(
-                    self.app,
-                    conversation_id=conversation_id,
-                    admin_id=user_id,
-                    questions=questions,
-                )
-                return await self._start_game(conversation_id, game)
+        elif message == "/start_blitz":
+            theme_id = 1
+            offset = 0
+            limit = 10
+            questions = await self.app.store.blitzes.get_questions_list(
+                theme_id, offset, limit
+            )
+            game = GameBlitz(
+                self.app,
+                conversation_id=conversation_id,
+                admin_id=user_id,
+                questions=questions,
+            )
+            return await self._start_game(conversation_id, game)
 
         return False
 
