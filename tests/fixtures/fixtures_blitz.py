@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.blitz.models import GameBlitzQuestion, GameBlitzTheme
+from app.games.blitz.logic import GameBlitz
 
 
 @pytest.fixture
@@ -64,3 +65,17 @@ async def blitz_question_2(
         await session.commit()
 
     return new_question
+
+
+@pytest.fixture
+def mock_questions():
+    """Создает фиктивные вопросы для игры"""
+    return [
+        GameBlitzQuestion(title="Вопрос 1", answer="Ответ 1"),
+        GameBlitzQuestion(title="Вопрос 2", answer="Ответ 2"),
+    ]
+
+
+@pytest.fixture
+def game_blitz(mock_app, mock_questions):
+    return GameBlitz(app=mock_app, questions=mock_questions)
