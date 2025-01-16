@@ -4,6 +4,7 @@ from logging import getLogger
 
 import sqlalchemy.orm.exc
 
+from app.games.blitz.logic import AbstractGame
 from app.games.game_100.constants import GameStage
 from app.games.game_100.models import Game, Player
 from app.store.vk_api.dataclasses import VkUser
@@ -13,7 +14,7 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class Game100Logic:
+class Game100Logic(AbstractGame):
     def __init__(
         self,
         app: "Application",
@@ -151,6 +152,7 @@ class Game100Logic:
         )
 
     async def start_game(self, admin_id: int):
+        self.logger.info(f"Началась игра {self.game_id}")
         if self.game_state == GameStage.WAIT_INIT:
             self.game_model.admin_game_id = admin_id
             await self.app.store.game_accessor.change_admin_game_id(
@@ -473,3 +475,22 @@ class Game100Logic:
             return True
 
         return False
+
+    async def stop_game(self):
+        self.logger.info("Конец игры")
+        await self.cancel_game(user_id=self.game_model.admin_game_id)
+        return True
+
+    async def finish_game(self):
+        self.logger.info("Завершение игры")
+
+    async def pause_game(self):
+        self.logger.info("Пауза игры")
+
+    async def resume_game(self):
+        self.logger.info("Возобновление игры")
+
+    async def handle_message(self, message: str, user_id: int, conversation_id: int):
+        """
+        Функция обрабатывает сообщения от пользователей
+        """

@@ -4,13 +4,13 @@ from logging import getLogger
 
 from app.games.blitz.logic import AbstractGame, GameBlitz
 from app.games.game_100.constants import GameStage
+from app.games.game_100.logic import Game100Logic
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
 )
 
 if typing.TYPE_CHECKING:
-    from app.games.game_100.logic import Game100Logic
     from app.web.app import Application
 
 
@@ -110,18 +110,32 @@ class GameManager(AbstractGameManager):
                 )
             if message == "/stop":
                 return await self._stop_game(conversation_id, game)
+
             elif message == "/pause":
                 await self._pause_game(conversation_id, game)
+
             elif message == "/resume":
                 await self._resume_game(conversation_id, game)
+
             else:
                 return await game.handle_message(message, user_id, conversation_id)
         else:
             if message == "/start_blitz":
+                theme_id = 1
+                offset = 0
+                limit = 10
+                questions = await self.app.store.blitzes.get_questions_list(
+                    theme_id, offset, limit
+                )
                 game = GameBlitz(
-                    self.app, conversation_id=conversation_id, admin_id=user_id
+                    self.app,
+                    conversation_id=conversation_id,
+                    admin_id=user_id,
+                    questions=questions,
                 )
                 return await self._start_game(conversation_id, game)
+
+        return False
 
 
 class BotManager:
@@ -168,13 +182,10 @@ class BotManager:
                     text=message,
                     user_id=from_id,
                 )
-                await self.app.store.game_manager.handle_message(
+                if await self.app.store.game_manager.handle_message(
                     message=message, user_id=from_id, conversation_id=conversation_id
-                )
-                # await self.game_manager.handle_message(message=message, user_id=from_id, conversation_id=conversation_id)
+                ):
+                    return
+
             except Exception:
                 self.logger.exception("Ошибка при обработке сообщения")
-
-
-
-
