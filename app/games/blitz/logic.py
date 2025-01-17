@@ -79,13 +79,49 @@ class GameBlitz(AbstractGame):
     ):
         self.app = app
         self.logger = getLogger(__name__)
-        self._game_stage = game_stage
+        self.game_stage = game_stage
         self.logger.info("Инициализирован GameBlitz")
-        self.conversation_id = int(conversation_id)
-        self.admin_id = int(admin_id)
+        self.conversation_id = conversation_id
+        self.admin_id = admin_id
         self.questions: list = questions
         self.id_current_question: int = 0
         self.list_gamers: list[BlitzGameUser] = []
+
+    @property
+    def conversation_id(self):
+        return self._conversation_id
+
+    @conversation_id.setter
+    def conversation_id(self, value: int):
+        """Устанавливает conversation_id"""
+        if value is None:
+            raise ValueError("conversation_id не может быть None") from ValueError
+        try:
+            v = int(value)
+        except ValueError:
+            raise ValueError("conversation_id должен быть int") from ValueError
+        if v <= 0:
+            raise ValueError("conversation_id должен быть > 0") from ValueError
+
+        self._conversation_id = v
+
+    @property
+    def admin_id(self):
+        return self._admin_id
+
+    @admin_id.setter
+    def admin_id(self, value: int):
+        if value is None:
+            raise ValueError("admin_id не может быть None") from ValueError
+
+        try:
+            v = int(value)
+        except ValueError:
+            raise ValueError("admin_id должен быть int") from ValueError
+
+        if v <= 0:
+            raise ValueError("admin_id должен быть > 0") from ValueError
+        self._admin_id = v
 
     def _is_true_answer(self, question_id: int, answer: str) -> bool:
         return answer.lower() == self.questions[question_id].answer.lower()
