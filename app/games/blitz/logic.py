@@ -157,8 +157,16 @@ class GameBlitz(AbstractGame):
         await self.finish_game()
         return False
 
-    async def handle_message(self, message: str, user_id: int, conversation_id: int):
+    async def handle_message(
+        self, message: str | None, user_id: int, conversation_id: int
+    ):
         self.logger.info("Обработка сообщения и логики бота")
+        if message is None:
+            raise TypeError("message не может быть None")
+        if user_id is None:
+            raise TypeError("user_id не может быть None")
+        if conversation_id is None:
+            raise TypeError("conversation_id не может быть None")
 
         if self.game_stage == BlitzGameStage.WAIT_ANSWER:
             self.logger.info("Ожидание ответа")
