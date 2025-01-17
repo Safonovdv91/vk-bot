@@ -2,7 +2,7 @@ import typing
 from abc import ABC, abstractmethod
 from logging import getLogger
 
-from app.games.blitz.logic import AbstractGame, GameBlitz
+from app.games.blitz.logic import AbstractGame, BlitzGameStage, GameBlitz
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -96,11 +96,21 @@ class GameManager(AbstractGameManager):
         self.logger.info("[%s] Продолжение игры : выполнено", conversation_id)
         return True
 
+    async def _finish_game(self, conversation_id: int, game: AbstractGame):
+        self.logger.info("[%s] Финиш игры : начато", conversation_id)
+        await game.finish_game()
+        self._active_games[conversation_id] = game
+        self.logger.info("[%s] Финиш игры : выполнено", conversation_id)
+        return True
+
     async def handle_message(self, message, user_id, conversation_id):
         self.logger.info("игра ловит сообщение %s от юзера %s", message, user_id)
         game: AbstractGame = self._active_games.get(conversation_id)
 
-        if game:
+        if game and game.game_stage not in [
+            BlitzGameStage.FINISHED,
+            BlitzGameStage.CANCELED,
+        ]:
             if message == "/start_blitz":
                 self.logger.info("Сейчас игра уже запущена: %s", game)
                 await self.app.store.vk_api.send_message(
@@ -114,6 +124,9 @@ class GameManager(AbstractGameManager):
 
             elif message == "/resume":
                 await self._resume_game(conversation_id, game)
+
+            elif message == "/finish":
+                await self._finish_game(conversation_id, game)
 
             else:
                 return await game.handle_message(message, user_id, conversation_id)
@@ -168,7 +181,6 @@ class BotManager:
 
     async def handle_updates(self, updates: list[MessageUpdate]):
         """Обработка пришедших сообщений от пользователей"""
-        # todo Необходимо разбить его на несколько этапов
         for update in updates:
             conversation_id = update.object.message.peer_id
             message = update.object.message.text
