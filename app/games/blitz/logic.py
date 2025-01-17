@@ -6,6 +6,7 @@ from enum import Enum
 from logging import getLogger
 
 from app.blitz.models import GameBlitzQuestion
+from app.store.vk_api.dataclasses import VkUser
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -25,6 +26,9 @@ class AbstractGame(ABC):
 
     Если игра есть  - то проверяем
     """
+
+    def __init__(self):
+        self.game_stage = None
 
     @abstractmethod
     async def start_game(self):
@@ -57,7 +61,7 @@ class AbstractGame(ABC):
 
 @dataclass
 class BlitzGameUser:
-    user_id: int
+    user: VkUser
     user_score: int = 0
 
 
@@ -77,6 +81,7 @@ class GameBlitz(AbstractGame):
         admin_id: int = 13007796,
         questions: list[GameBlitzQuestion] | None = None,
     ):
+        super().__init__()
         self.app = app
         self.logger = getLogger(__name__)
         self.game_stage = game_stage
@@ -126,17 +131,18 @@ class GameBlitz(AbstractGame):
     def _is_true_answer(self, question_id: int, answer: str) -> bool:
         return answer.lower() == self.questions[question_id].answer.lower()
 
-    def _add_point_score_to_user(self, user_id: int) -> BlitzGameUser:
+    async def _add_point_score_to_user(self, user_id: int) -> BlitzGameUser:
         """Добавляет пользователю 1 побденое очко"""
         for user in self.list_gamers:
-            if user.user_id == user_id:
+            if user.user.id == user_id:
                 user.user_score += 1
                 return user
 
         self.logger.info("Новый игрок")
-        user = BlitzGameUser(user_id=user_id, user_score=1)
-        self.list_gamers.append(user)
-        return user
+        user = await self.app.store.vk_api.get_vk_user(user_id)
+        blitz_game_user = BlitzGameUser(user=user, user_score=1)
+        self.list_gamers.append(blitz_game_user)
+        return blitz_game_user
 
     async def next_question(self):
         self.logger.info("Следующий вопрос")
@@ -154,14 +160,14 @@ class GameBlitz(AbstractGame):
     async def handle_message(self, message: str, user_id: int, conversation_id: int):
         self.logger.info("Обработка сообщения и логики бота")
 
-        if self._game_stage == BlitzGameStage.WAIT_ANSWER:
+        if self.game_stage == BlitzGameStage.WAIT_ANSWER:
             self.logger.info("Ожидание ответа")
 
             if self._is_true_answer(self.id_current_question, message):
-                user = self._add_point_score_to_user(user_id)
+                blitz_game_user = await self._add_point_score_to_user(user_id)
                 msg = (
-                    f"Пользователь {user_id} дал правильный ответ,"
-                    f" у него теперь {user.user_score} очков"
+                    f"Пользователь {blitz_game_user.user.first_name} дал правильный "
+                    f"ответ, у него теперь {blitz_game_user.user_score} очков"
                 )
                 self.logger.info("[%s]: %s", conversation_id, msg)
                 await self.app.store.vk_api.send_message(conversation_id, msg)
@@ -169,14 +175,13 @@ class GameBlitz(AbstractGame):
                 if await self.next_question():
                     return True
 
-                await self.stop_game()
                 return True
 
         return False
 
     async def start_game(self):
         self.logger.info("Начало игры")
-        self._game_stage = BlitzGameStage.WAIT_ANSWER
+        self.game_stage = BlitzGameStage.WAIT_ANSWER
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Начата игра BLITZ"
         )
@@ -189,32 +194,32 @@ class GameBlitz(AbstractGame):
         return True
 
     async def stop_game(self):
-        self.logger.info("Конец игры")
-        self._game_stage = BlitzGameStage.FINISHED
+        self.logger.info("Конец игры вызван STOP")
+        await self.pause_game()
         return True
 
     async def finish_game(self):
         self.logger.info("Завершение игры")
         msg = (
             f"Игра успешно завершена!\n"
-            f"вопросов было задано - {len(self.questions)}\n"
-            f"таблица результатов:\n {self.list_gamers}"
+            f"Вопросов было задано - {self.id_current_question:}\n"
+            f"Таблица результатов:\n"
         )
         for _ in self.list_gamers:
-            msg += f"| {_.user_id} | - {_.user_score} \n"
+            msg += f"|{_.user.first_name} | - {_.user_score} \n"
 
         await self.app.store.vk_api.send_message(self.conversation_id, msg)
-        self._game_stage = BlitzGameStage.FINISHED
+        self.game_stage = BlitzGameStage.FINISHED
         return True
 
     async def cancel_game(self):
         self.logger.info("Отмена игры")
-        self._game_stage = BlitzGameStage.CANCELED
+        self.game_stage = BlitzGameStage.CANCELED
         return True
 
     async def pause_game(self):
         self.logger.info("Пауза игры")
-        self._game_stage = BlitzGameStage.PAUSED
+        self.game_stage = BlitzGameStage.PAUSED
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Игра приостановлена"
         )
@@ -222,7 +227,7 @@ class GameBlitz(AbstractGame):
 
     async def resume_game(self):
         self.logger.info("Возобновление игры")
-        self._game_stage = BlitzGameStage.WAIT_ANSWER
+        self.game_stage = BlitzGameStage.WAIT_ANSWER
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Игра Возобновлена"
         )
