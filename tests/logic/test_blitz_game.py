@@ -11,6 +11,7 @@ class TestBlitzGameSuccess:
             ("13007796", "13007796"),
         ],
     )
+    @pytest.mark.logic
     async def test_init_game_success(
         self, application, mock_questions, conversation_id, admin_id
     ):
@@ -39,6 +40,7 @@ class TestBlitzGameBadData:
             (13007796, None, "admin_id не может быть None"),
         ],
     )
+    @pytest.mark.logic
     async def test_init_game_error_init(
         self, application, mock_questions, conversation_id, admin_id, text_error
     ):

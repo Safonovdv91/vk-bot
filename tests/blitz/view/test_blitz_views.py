@@ -3,6 +3,7 @@ from aiohttp.test_utils import TestClient
 
 
 class TestBlitzThemeAddView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.post(
             "/game/blitz.themes_add",
@@ -21,6 +22,7 @@ class TestBlitzThemeAddView:
             ("test_title", "test_description", 200),
         ],
     )
+    @pytest.mark.view
     async def test_themes_add_success(
         self, auth_cli: TestClient, title: str, description: str, expected_status: int
     ) -> None:
@@ -49,6 +51,7 @@ class TestBlitzThemeAddView:
             ),
         ],
     )
+    @pytest.mark.view
     async def test_themes_bad_title(
         self, auth_cli: TestClient, title: str, description: str, expected_status: int
     ) -> None:
@@ -61,6 +64,7 @@ class TestBlitzThemeAddView:
         )
         assert response.status == expected_status
 
+    @pytest.mark.view
     async def test_conflict_duplicate(self, auth_cli: TestClient) -> None:
         response = await auth_cli.post(
             "/game/blitz.themes_add",
@@ -83,10 +87,12 @@ class TestBlitzThemeAddView:
 class TestBlitzThemeGetView:
     URL = "/game/blitz.themes_list"
 
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get(self.URL)
         assert response.status == 401
 
+    @pytest.mark.view
     async def test_success_one_theme(
         self,
         auth_cli: TestClient,
@@ -109,6 +115,7 @@ class TestBlitzThemeGetView:
             "status": "ok",
         }
 
+    @pytest.mark.view
     async def test_success_two_themes(
         self, auth_cli: TestClient, blitz_theme_1, blitz_theme_2
     ) -> None:
@@ -138,6 +145,7 @@ class TestBlitzThemeGetView:
 class TestBlitzQuestionAddView:
     URL = "/game/blitz.questions_add"
 
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.post(
             self.URL,
@@ -152,6 +160,7 @@ class TestBlitzQuestionAddView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success_first_question(
         self, auth_cli: TestClient, blitz_theme_1
     ) -> None:
@@ -175,6 +184,7 @@ class TestBlitzQuestionAddView:
             },
         }
 
+    @pytest.mark.view
     async def test_success_second_question(
         self, auth_cli: TestClient, blitz_question_1
     ) -> None:
@@ -198,6 +208,7 @@ class TestBlitzQuestionAddView:
             },
         }
 
+    @pytest.mark.view
     async def test_error_no_themes(self, auth_cli: TestClient) -> None:
         response = await auth_cli.post(
             self.URL,
@@ -233,6 +244,7 @@ class TestBlitzQuestionAddView:
             ),
         ],
     )
+    @pytest.mark.view
     async def test_errors_bad_data(
         self,
         auth_cli: TestClient,

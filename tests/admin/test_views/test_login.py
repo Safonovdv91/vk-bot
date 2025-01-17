@@ -1,9 +1,11 @@
+import pytest
 from aiohttp.test_utils import TestClient
 
 from app.web.config import Config
 
 
 class TestAdminLoginView:
+    @pytest.mark.view
     async def test_success_when_good_credentials(
         self, cli: TestClient, config: Config
     ) -> None:
@@ -25,6 +27,7 @@ class TestAdminLoginView:
             },
         }
 
+    @pytest.mark.view
     async def test_bad_request_when_missed_email(self, cli: TestClient) -> None:
         response = await cli.post(
             "/admin.login",
@@ -41,6 +44,7 @@ class TestAdminLoginView:
             "data": {"json": {"email": ["Missing data for required field."]}},
         }
 
+    @pytest.mark.view
     async def test_forbidden_when_not_valid_credentials(self, cli: TestClient) -> None:
         response = await cli.post(
             "/admin.login",

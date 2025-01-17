@@ -1,9 +1,11 @@
+import pytest
 from aiohttp.test_utils import TestClient
 
 from app.quiz.models import Question
 
 
 class TestQuestionAddView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.post(
             "/game/quiz.questions_add",
@@ -23,6 +25,7 @@ class TestQuestionAddView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success(self, auth_cli: TestClient, question_1: Question) -> None:
         response = await auth_cli.post(
             "/game/quiz.questions_add",
@@ -55,6 +58,7 @@ class TestQuestionAddView:
             },
         }
 
+    @pytest.mark.view
     async def test_bad_score(self, auth_cli: TestClient, question_1: Question) -> None:
         response = await auth_cli.post(
             "/game/quiz.questions_add",
@@ -78,6 +82,7 @@ class TestQuestionAddView:
             "быть равна 100, текущая сумма: 101"
         )
 
+    @pytest.mark.view
     async def test_empty_title(self, auth_cli: TestClient, question_1: Question) -> None:
         response = await auth_cli.post(
             "/game/quiz.questions_add",
@@ -95,6 +100,7 @@ class TestQuestionAddView:
         )
         assert response.status == 400, response.json()
 
+    @pytest.mark.view
     async def test_empty_answers(
         self, auth_cli: TestClient, question_1: Question
     ) -> None:
@@ -113,6 +119,7 @@ class TestQuestionAddView:
 
 
 class TestQuestionDeleteByIdView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.delete(
             "/game/quiz.questions_delete_by_id", params={"question_id": 1}
@@ -122,6 +129,7 @@ class TestQuestionDeleteByIdView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_delete_question_by_id_success(
         self, auth_cli: TestClient, theme_1, question_1
     ):
@@ -130,6 +138,7 @@ class TestQuestionDeleteByIdView:
         )
         assert response.status == 200
 
+    @pytest.mark.view
     async def test_delete_question_by_id_bad_id(
         self, auth_cli: TestClient, theme_1, question_1
     ):
@@ -138,6 +147,7 @@ class TestQuestionDeleteByIdView:
         )
         assert response.status == 400
 
+    @pytest.mark.view
     async def test_question_by_id_conflict(self, auth_cli: TestClient, game1):
         response = await auth_cli.delete(
             "/game/quiz.questions_delete_by_id", params={"question_id": 1}
@@ -146,6 +156,7 @@ class TestQuestionDeleteByIdView:
 
 
 class TestQuestionListView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/game/quiz.questions_list", params={"theme_id": 1})
         assert response.status == 401
@@ -153,6 +164,7 @@ class TestQuestionListView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success_one_question(
         self, auth_cli: TestClient, theme_1, question_1
     ) -> None:
@@ -181,6 +193,7 @@ class TestQuestionListView:
 
 
 class TestThemeListView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/game/quiz.themes_list")
         assert response.status == 401
@@ -188,6 +201,7 @@ class TestThemeListView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success_themes_list_empty(self, auth_cli: TestClient) -> None:
         response = await auth_cli.get("/game/quiz.themes_list")
         assert response.status == 200
@@ -198,6 +212,7 @@ class TestThemeListView:
             "data": {"themes": []},
         }
 
+    @pytest.mark.view
     async def test_success_themes_list_default_theme(
         self, auth_cli: TestClient, theme_1
     ) -> None:
@@ -220,6 +235,7 @@ class TestThemeListView:
 
 
 class TestThemeDeleteByIdView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.delete(
             "/game/quiz.themes_delete_by_id", params={"theme_id": 1}
@@ -229,6 +245,7 @@ class TestThemeDeleteByIdView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_delete_theme_by_id_success(self, auth_cli: TestClient, theme_1):
         response = await auth_cli.delete(
             "/game/quiz.themes_delete_by_id", params={"theme_id": 1}
@@ -247,6 +264,7 @@ class TestThemeDeleteByIdView:
             "status": "ok",
         }
 
+    @pytest.mark.view
     async def test_delete_theme_by_409(
         self, auth_cli: TestClient, theme_1, question_1, game1
     ):
@@ -257,6 +275,7 @@ class TestThemeDeleteByIdView:
 
 
 class TestThemeAddView:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.post(
             "/game/quiz.themes_add",
@@ -267,6 +286,7 @@ class TestThemeAddView:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success(self, auth_cli: TestClient) -> None:
         response = await auth_cli.post(
             "/game/quiz.themes_add",

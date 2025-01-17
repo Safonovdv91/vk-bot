@@ -192,6 +192,11 @@ asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::DeprecationWarning:asyncpg.*:",
     "ignore::DeprecationWarning:pytest_asyncio.plugin.*:",
-    "ignore::DeprecationWarning",
+    "ignore::DeprecationWarning"
 ]
+markers = [
+    "logic: tests logic game",
+    "view: mark view tests",
+]
+
 

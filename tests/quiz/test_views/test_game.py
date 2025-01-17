@@ -1,7 +1,9 @@
+import pytest
 from aiohttp.test_utils import TestClient
 
 
 class TestListActive:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/game/list_active")
 
@@ -10,6 +12,7 @@ class TestListActive:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success_empty_finished(
         self, auth_cli: TestClient, game_finished, game_canceled
     ) -> None:
@@ -20,6 +23,7 @@ class TestListActive:
         data = await response.json()
         assert data == {"data": {"games": []}, "status": "ok"}
 
+    @pytest.mark.view
     async def test_success(self, auth_cli: TestClient, game_running) -> None:
         response = await auth_cli.get("/game/list_active")
 
@@ -63,6 +67,7 @@ class TestListActive:
 
 
 class TestGetGameById:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("/game/get_by_id", params={"game_id": 1})
 
@@ -71,6 +76,7 @@ class TestGetGameById:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_get_by_id_success(self, auth_cli: TestClient, game_running) -> None:
         response = await auth_cli.get("/game/get_by_id", params={"game_id": 1})
 
@@ -108,6 +114,7 @@ class TestGetGameById:
             "status": "ok",
         }
 
+    @pytest.mark.view
     async def test_get_by_id_success_no_game(
         self, auth_cli: TestClient, game_running
     ) -> None:
@@ -118,6 +125,7 @@ class TestGetGameById:
         data = await response.json()
         assert data == {"data": {}, "status": "ok"}
 
+    @pytest.mark.view
     async def test_get_by_id_success_bad_id(
         self, auth_cli: TestClient, game_running
     ) -> None:
@@ -134,6 +142,7 @@ class TestGetGameById:
 
 
 class TestGameSettingsGetById:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.get("game/profile.get_by_id", params={"profile_id": 1})
 
@@ -142,6 +151,7 @@ class TestGameSettingsGetById:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.get("game/profile.get_by_id", params={"profile_id": 1})
 
@@ -161,6 +171,7 @@ class TestGameSettingsGetById:
             "status": "ok",
         }
 
+    @pytest.mark.view
     async def test_success_bad_id(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.get(
             "game/profile.get_by_id", params={"profile_id": "sd"}
@@ -176,6 +187,7 @@ class TestGameSettingsGetById:
 
 
 class TestChangeDefaultProfile:
+    @pytest.mark.view
     async def test_unauthorized(self, cli: TestClient) -> None:
         response = await cli.patch(
             "game/profile_default.patch", params={"time_to_registration": 12}
@@ -186,6 +198,7 @@ class TestChangeDefaultProfile:
         data = await response.json()
         assert data["status"] == "unauthorized"
 
+    @pytest.mark.view
     async def test_success(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
             "game/profile_default.patch", params={"time_to_registration": 122}
@@ -217,6 +230,7 @@ class TestChangeDefaultProfile:
             != {"data": {}, "status": "ok"}
         )
 
+    @pytest.mark.view
     async def test_success_min_max(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
             "game/profile_default.patch",
@@ -248,6 +262,7 @@ class TestChangeDefaultProfile:
             "status": "ok",
         }
 
+    @pytest.mark.view
     async def test_success_bad_max(self, auth_cli: TestClient, game_settings) -> None:
         response = await auth_cli.patch(
             "game/profile_default.patch",
