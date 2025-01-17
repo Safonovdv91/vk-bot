@@ -9,8 +9,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
-from app.game.constants import GameStage
-from app.game.models import (
+from app.games.game_100.constants import GameStage
+from app.games.game_100.models import (
     Game,
     GameSettings,
     Player,
@@ -47,9 +47,7 @@ class GameAccessor(BaseAccessor):
 
             if question is None:
                 # выбросить кастомное исключение
-                self.logger.error(
-                    "В Базе данных отсутствует хотябы один вопрос!"
-                )
+                self.logger.error("В Базе данных отсутствует хотябы один вопрос!")
                 return None
             game = Game(
                 conversation_id=peer_id,
@@ -78,9 +76,7 @@ class GameAccessor(BaseAccessor):
                 sqlalchemy.exc.ProgrammingError,
             ) as exc:
                 self.logger.exception(exc_info=exc, msg=exc)
-                await (
-                    session.rollback()
-                )  # Откатываем транзакцию перед повторной попыткой
+                await session.rollback()  # Откатываем транзакцию перед повторной попыткой
                 raise HTTPBadRequest(
                     reason="Не удалось обновить pinned message из-за"
                     " проблемы целостности данных"
@@ -106,9 +102,7 @@ class GameAccessor(BaseAccessor):
                 )
             except UniqueViolationError as exc:
                 await session.rollback()
-                self.logger.exception(
-                    exc_info=exc, msg="Пользователь уже зарегестриован"
-                )
+                self.logger.exception(exc_info=exc, msg="Пользователь уже зарегестриован")
 
     async def get_player_by_vk_id_game_id(self, vk_id: int, game_id):
         stmt = (
@@ -139,15 +133,11 @@ class GameAccessor(BaseAccessor):
 
             except sqlalchemy.exc.IntegrityError as exc:
                 await session.rollback()
-                self.logger.exception(
-                    exc_info=exc, msg="Не удалось удалить игрока"
-                )
+                self.logger.exception(exc_info=exc, msg="Не удалось удалить игрока")
 
             except sqlalchemy.exc.InterfaceError as exc:
                 await session.rollback()
-                self.logger.exception(
-                    exc_info=exc, msg="Не удалось удалить игрока"
-                )
+                self.logger.exception(exc_info=exc, msg="Не удалось удалить игрока")
 
             else:
                 return player
@@ -242,24 +232,16 @@ class GameAccessor(BaseAccessor):
             stmt = select(Game).options(
                 joinedload(Game.question).joinedload(Question.answers),
                 joinedload(Game.players),
-                joinedload(Game.player_answers_games).joinedload(
-                    PlayerAnswerGame.answer
-                ),
+                joinedload(Game.player_answers_games).joinedload(PlayerAnswerGame.answer),
                 joinedload(Game.profile),
-                joinedload(Game.player_answers_games).joinedload(
-                    PlayerAnswerGame.player
-                ),
+                joinedload(Game.player_answers_games).joinedload(PlayerAnswerGame.player),
             )
 
             if state:
                 try:
-                    stmt = stmt.where(
-                        Game.state == self.state_dict[state.lower()]
-                    )
+                    stmt = stmt.where(Game.state == self.state_dict[state.lower()])
                 except KeyError as exc:
-                    raise HTTPBadRequest(
-                        reason="Такого статуса не существует"
-                    ) from exc
+                    raise HTTPBadRequest(reason="Такого статуса не существует") from exc
 
             if limit:
                 stmt = stmt.limit(limit)
@@ -270,15 +252,11 @@ class GameAccessor(BaseAccessor):
             result = await session.execute(stmt)
         return result.unique().scalars().all()
 
-    async def get_active_games(
-        self, limit: int | None = None, offset: int | None = None
-    ):
+    async def get_active_games(self, limit: int | None = None, offset: int | None = None):
         async with self.app.database.session() as session:
             stmt = (
                 select(Game)
-                .where(
-                    Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED])
-                )
+                .where(Game.state.not_in([GameStage.FINISHED, GameStage.CANCELED]))
                 .options(
                     joinedload(Game.question).joinedload(Question.answers),
                     joinedload(Game.players),
@@ -346,13 +324,9 @@ class GameSettingsAccessor(BaseAccessor):
         await self.upsert_settings(new_game_settings=game_settings)
 
     async def upsert_settings(self, new_game_settings: GameSettings):
-        if (
-            new_game_settings.min_count_gamers
-            > new_game_settings.max_count_gamers
-        ):
+        if new_game_settings.min_count_gamers > new_game_settings.max_count_gamers:
             raise HTTPBadRequest(
-                reason="min_count_gamers не может быть"
-                " больше max_count_gamers"
+                reason="min_count_gamers не может быть" " больше max_count_gamers"
             )
         game_settings_data = {
             "profile_name": new_game_settings.profile_name,
@@ -392,21 +366,17 @@ class GameSettingsAccessor(BaseAccessor):
 
     async def add_settings(self, new_game_settings: GameSettings):
         async with self.app.database.session() as session:
-            if (
-                new_game_settings.min_count_gamers
-                > new_game_settings.max_count_gamers
-            ):
+            if new_game_settings.min_count_gamers > new_game_settings.max_count_gamers:
                 raise HTTPBadRequest(
-                    reason="min_count_gamers не может быть"
-                    " больше max_count_gamers"
+                    reason="min_count_gamers не может быть" " больше max_count_gamers"
                 )
             try:
                 session.add(new_game_settings)
                 await session.commit()
-            except sqlalchemy.exc.IntegrityError:
+            except sqlalchemy.exc.IntegrityError as err:
                 raise HTTPBadRequest(
                     reason="Профиль игры с такими параметрами уже существует"
-                )
+                ) from err
 
     async def update_settings(
         self,
@@ -436,9 +406,7 @@ class GameSettingsAccessor(BaseAccessor):
                     stmt = stmt.values(description=description)
 
                 if time_to_registration:
-                    stmt = stmt.values(
-                        time_to_registration=int(time_to_registration)
-                    )
+                    stmt = stmt.values(time_to_registration=int(time_to_registration))
                 if time_to_answer:
                     stmt = stmt.values(time_to_answer=int(time_to_answer))
                 if min_count_gamers:
@@ -454,18 +422,14 @@ class GameSettingsAccessor(BaseAccessor):
                 sqlalchemy.exc.ProgrammingError,
             ) as exc:
                 self.logger.exception(exc_info=exc, msg=exc)
-                await (
-                    session.rollback()
-                )  # Откатываем транзакцию перед повторной попыткой
+                await session.rollback()  # Откатываем транзакцию перед повторной попыткой
                 raise HTTPBadRequest(
                     reason="Не удалось обновить вопрос из-за"
                     " проблемы целостности данных"
                 ) from exc
 
 
-def check_min_max(
-    game_settings: GameSettings, min_count_gamers, max_count_gamers
-):
+def check_min_max(game_settings: GameSettings, min_count_gamers, max_count_gamers):
     if min_count_gamers and max_count_gamers:
         if int(min_count_gamers) > int(max_count_gamers):
             raise HTTPBadRequest(
@@ -473,18 +437,13 @@ def check_min_max(
                 "быть менньше максимального!!!"
             )
         return
-    if (
-        min_count_gamers
-        and int(min_count_gamers) > game_settings.max_count_gamers
-    ):
+    if min_count_gamers and int(min_count_gamers) > game_settings.max_count_gamers:
         raise HTTPBadRequest(
             reason=f"Минимальное кол-во игроков должно "
             f"быть меньше максимального {game_settings.max_count_gamers}"
         )
 
-    if max_count_gamers and game_settings.min_count_gamers > int(
-        max_count_gamers
-    ):
+    if max_count_gamers and game_settings.min_count_gamers > int(max_count_gamers):
         raise HTTPBadRequest(
             reason=f"Максимальное кол-во игроков должно "
             f"быть больше минимального ({game_settings.min_count_gamers})"

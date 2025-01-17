@@ -12,35 +12,19 @@ class GameSettingsIdSchema(Schema):
 
 
 class DefaultGameSettingsIdSchema(Schema):
-    time_to_registration = fields.Int(
-        required=False, validate=validate.Range(min=1)
-    )
-    min_count_gamers = fields.Int(
-        required=False, validate=validate.Range(min=1)
-    )
-    max_count_gamers = fields.Int(
-        required=False, validate=validate.Range(min=1, max=30)
-    )
-    time_to_answer = fields.Int(
-        required=False, validate=validate.Range(min=1, max=999)
-    )
+    time_to_registration = fields.Int(required=False, validate=validate.Range(min=1))
+    min_count_gamers = fields.Int(required=False, validate=validate.Range(min=1))
+    max_count_gamers = fields.Int(required=False, validate=validate.Range(min=1, max=30))
+    time_to_answer = fields.Int(required=False, validate=validate.Range(min=1, max=999))
 
 
 class GameSettingsPatchSchema(Schema):
     profile_name = fields.Str(required=False)
     description = fields.Str(required=False)
-    time_to_registration = fields.Int(
-        required=False, validate=validate.Range(min=1)
-    )
-    min_count_gamers = fields.Int(
-        required=False, validate=validate.Range(min=1)
-    )
-    max_count_gamers = fields.Int(
-        required=False, validate=validate.Range(min=1, max=30)
-    )
-    time_to_answer = fields.Int(
-        required=False, validate=validate.Range(min=1, max=999)
-    )
+    time_to_registration = fields.Int(required=False, validate=validate.Range(min=1))
+    min_count_gamers = fields.Int(required=False, validate=validate.Range(min=1))
+    max_count_gamers = fields.Int(required=False, validate=validate.Range(min=1, max=30))
+    time_to_answer = fields.Int(required=False, validate=validate.Range(min=1, max=999))
 
 
 class GameSettingsPatchRequestsSchema(Schema):
@@ -59,16 +43,10 @@ class GameSettingsSchema(Schema):
     id = fields.Int(required=False)
     profile_name = fields.Str(required=True)
     description = fields.Str(required=True)
-    time_to_registration = fields.Int(
-        required=True, validate=validate.Range(min=1)
-    )
+    time_to_registration = fields.Int(required=True, validate=validate.Range(min=1))
     min_count_gamers = fields.Int(required=True, validate=validate.Range(min=1))
-    max_count_gamers = fields.Int(
-        required=True, validate=validate.Range(min=1, max=15)
-    )
-    time_to_answer = fields.Int(
-        required=True, validate=validate.Range(min=1, max=99)
-    )
+    max_count_gamers = fields.Int(required=True, validate=validate.Range(min=1, max=15))
+    time_to_answer = fields.Int(required=True, validate=validate.Range(min=1, max=99))
 
 
 class GameListQuerySchema(Schema):
@@ -112,9 +90,7 @@ class GameSchema(Schema):
     profile = fields.Nested(GameSettingsSchema, required=True)
     question = fields.Nested(QuestionSchema, many=False, required=True)
     players = fields.Nested(PlayerSchema, many=True, required=True)
-    player_answers_games = fields.Nested(
-        PlayerAnswersGames, many=True, required=True
-    )
+    player_answers_games = fields.Nested(PlayerAnswersGames, many=True, required=True)
 
 
 class GameListSchema(Schema):

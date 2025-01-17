@@ -15,8 +15,11 @@ from app.store import Store
 from app.store.database.database import Database
 from app.web.app import Application, setup_app
 from app.web.config import Config
+from tests.fixtures.fixtures_blitz import *
 from tests.fixtures.fixtures_logic import *
 from tests.fixtures.fixtures_quiz import *
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -68,15 +71,13 @@ async def clear_db(application: Application) -> Iterator[None]:
     try:
         yield
     except Exception as err:
-        logging.warning(err)
+        logger.error(err)
     finally:
         session = AsyncSession(application.database.engine)
         connection = session.connection()
         for table in application.database._db.metadata.tables:
             await session.execute(text(f"TRUNCATE {table} CASCADE"))
-            await session.execute(
-                text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1")
-            )
+            await session.execute(text(f"ALTER SEQUENCE {table}_id_seq RESTART WITH 1"))
 
         await session.commit()
         connection.close()

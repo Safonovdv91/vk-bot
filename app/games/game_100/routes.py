@@ -1,6 +1,6 @@
 import typing
 
-from app.game.views import (
+from app.games.game_100.views import (
     AddSettingsView,
     DefaultSettingsView,
     GameGetByIdView,

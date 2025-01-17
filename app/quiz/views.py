@@ -71,9 +71,7 @@ class ThemeDeleteByIdView(
         theme = await self.store.quizzes.delete_theme_by_id(int(theme_id))
 
         if theme is None:
-            raise HTTPBadRequest(
-                reason=f"Темы с ID = {theme_id} не существует."
-            )
+            raise HTTPBadRequest(reason=f"Темы с ID = {theme_id} не существует.")
 
         return json_response(
             data={
@@ -145,9 +143,7 @@ class QuestionDeleteByIdView(AuthRequiredMixin, View):
     @response_schema(QuestionSchema)
     async def delete(self):
         question_id = self.request.query.get("question_id")
-        question = await self.store.quizzes.delete_question_by_id(
-            int(question_id)
-        )
+        question = await self.store.quizzes.delete_question_by_id(int(question_id))
 
         return json_response(
             data={
@@ -175,13 +171,9 @@ class QuestionListView(AuthRequiredMixin, View):
         theme_id = self.request.query.get("theme_id")
         limit = self.request.query.get("limit")
         offset = self.request.query.get("offset")
-        questions = await self.store.quizzes.get_questions_list(
-            theme_id, offset, limit
-        )
+        questions = await self.store.quizzes.get_questions_list(theme_id, offset, limit)
 
-        return json_response(
-            data=QuestionListSchema().dump({"questions": questions})
-        )
+        return json_response(data=QuestionListSchema().dump({"questions": questions}))
 
 
 class QuestionPatchById(AuthRequiredMixin, View):

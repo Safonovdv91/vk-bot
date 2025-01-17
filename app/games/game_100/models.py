@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.game.constants import GameStage
+from app.games.game_100.constants import GameStage
 from app.quiz.models import Answer, Question
 from app.store.database.sqlalchemy_base import BaseModel
 
@@ -19,9 +19,7 @@ class GameSettings(BaseModel):
         ),
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    profile_name: Mapped[str] = mapped_column(
-        String[20], nullable=False, unique=True
-    )
+    profile_name: Mapped[str] = mapped_column(String[20], nullable=False, unique=True)
     time_to_registration: Mapped[int] = mapped_column(default=15)
     min_count_gamers: Mapped[int] = mapped_column(default=1)
     max_count_gamers: Mapped[int] = mapped_column(default=6)
@@ -49,17 +47,13 @@ class Game(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversation_id: Mapped[int | None] = mapped_column(default=None)
     admin_game_id: Mapped[int | None] = mapped_column(default=None)
-    pinned_conversation_message_id: Mapped[int | None] = mapped_column(
-        default=None
-    )
+    pinned_conversation_message_id: Mapped[int | None] = mapped_column(default=None)
     responsed_player_id: Mapped[int | None] = mapped_column(
         server_default=None, default=None
     )
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     state: Mapped[PG_ENUM] = mapped_column(PG_ENUM(GameStage), nullable=False)
-    profile_id: Mapped[int] = mapped_column(
-        ForeignKey("game_settings.id"), default=1
-    )
+    profile_id: Mapped[int] = mapped_column(ForeignKey("game_settings.id"), default=1)
 
     profile: Mapped["GameSettings"] = relationship(back_populates="games")
     question: Mapped["Question"] = relationship(back_populates="games")
@@ -77,9 +71,7 @@ class Player(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     vk_user_id: Mapped[int] = mapped_column(nullable=False, primary_key=True)
     name: Mapped[str] = mapped_column(String[50])
-    game_id: Mapped[int] = mapped_column(
-        ForeignKey("games.id"), primary_key=True
-    )
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), primary_key=True)
 
     game: Mapped["Game"] = relationship(back_populates="players")
     player_answers_games: Mapped[list["PlayerAnswerGame"]] = relationship(
@@ -99,18 +91,10 @@ class PlayerAnswerGame(BaseModel):
     )
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    player_id: Mapped[int] = mapped_column(
-        ForeignKey("players.id"), nullable=False
-    )
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False)
     game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), nullable=False)
-    answer_id: Mapped[int] = mapped_column(
-        ForeignKey("answers.id"), nullable=False
-    )
+    answer_id: Mapped[int] = mapped_column(ForeignKey("answers.id"), nullable=False)
 
-    player: Mapped[list["Player"]] = relationship(
-        back_populates="player_answers_games"
-    )
+    player: Mapped[list["Player"]] = relationship(back_populates="player_answers_games")
     game: Mapped["Game"] = relationship(back_populates="player_answers_games")
-    answer: Mapped["Answer"] = relationship(
-        back_populates="player_answers_games"
-    )
+    answer: Mapped["Answer"] = relationship(back_populates="player_answers_games")

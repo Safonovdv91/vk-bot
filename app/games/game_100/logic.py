@@ -4,8 +4,9 @@ from logging import getLogger
 
 import sqlalchemy.orm.exc
 
-from app.game.constants import GameStage
-from app.game.models import Game, Player
+from app.games.blitz.logic import AbstractGame
+from app.games.game_100.constants import GameStage
+from app.games.game_100.models import Game, Player
 from app.store.vk_api.dataclasses import VkUser
 from app.store.vk_api.utils import VkButton, VkKeyboard
 
@@ -13,7 +14,7 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
-class GameLogic:
+class Game100Logic(AbstractGame):
     def __init__(
         self,
         app: "Application",
@@ -138,10 +139,7 @@ class GameLogic:
                     text += f"| {answer.title} | = {answer.score} очков\n"
                 else:
                     _ = "X" * len(answer.title)
-                    text += (
-                        f"| {_} | ({len(answer.title)})  "
-                        f"= {answer.score} очков\n"
-                    )
+                    text += f"| {_} | ({len(answer.title)})  " f"= {answer.score} очков\n"
 
         else:
             for answer in self.game_model.question.answers:
@@ -154,6 +152,7 @@ class GameLogic:
         )
 
     async def start_game(self, admin_id: int):
+        self.logger.info("Началась игра: %s", self.game_id)
         if self.game_state == GameStage.WAIT_INIT:
             self.game_model.admin_game_id = admin_id
             await self.app.store.game_accessor.change_admin_game_id(
@@ -218,9 +217,7 @@ class GameLogic:
                 )
 
                 if player is None:
-                    player: VkUser = await self.app.store.vk_api.get_vk_user(
-                        user_id
-                    )
+                    player: VkUser = await self.app.store.vk_api.get_vk_user(user_id)
                     await self.app.store.game_accessor.add_player(
                         game_id=self.game_id,
                         vk_user_id=player.id,
@@ -252,9 +249,7 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Успешная регистрация!",
                 )
-                pinned_text = (
-                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
-                )
+                pinned_text = f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
 
                 for v in self.players.values():
                     pinned_text += f"-- {v.last_name} {v.first_name} \n"
@@ -287,9 +282,7 @@ class GameLogic:
                     user_id=user_id,
                     response_text="Вы отменили регистрацию на игру!",
                 )
-                pinned_text = (
-                    f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
-                )
+                pinned_text = f"Игроки: ({len(self.players)}/{self.max_count_gamers})\n"
 
                 for v in self.players.values():
                     pinned_text += f"-- {v.last_name} {v.first_name} \n"
@@ -332,9 +325,7 @@ class GameLogic:
         ):
             self.game_state = GameStage.WAITING_ANSWER
             self.answered_player_id = user_id
-            self.answered_player = await self.app.store.vk_api.get_vk_user(
-                user_id
-            )
+            self.answered_player = await self.app.store.vk_api.get_vk_user(user_id)
 
             await self.app.store.game_accessor.change_state(
                 game_id=self.game_id, new_state=GameStage.WAITING_ANSWER
@@ -353,8 +344,7 @@ class GameLogic:
             vk_user = await self.app.store.vk_api.get_vk_user(user_id)
             await self.app.store.vk_api.send_message(
                 peer_id=self.conversation_id,
-                text=f"На вопрос отвечает"
-                f" {vk_user.last_name} {vk_user.first_name}!",
+                text=f"На вопрос отвечает" f" {vk_user.last_name} {vk_user.first_name}!",
                 keyboard=await keyboard_start_game.get_keyboard(),
             )
 
@@ -455,9 +445,7 @@ class GameLogic:
             text = "Таблица победитей: \n 🏆"
 
             for player_name, player_score in players_scores:
-                text += " {:<15} :{:<5} очков\n".format(
-                    player_name, player_score
-                )
+                text += " {:<15} :{:<5} очков\n".format(player_name, player_score)
 
             text += "\n\n Всем спасибо за игру!"
             await self.app.store.vk_api.send_message(
@@ -465,9 +453,7 @@ class GameLogic:
                 text=text,
                 keyboard=await VkKeyboard().get_keyboard(),
             )
-            await self.app.store.vk_api.unpin_message(
-                peer_id=self.conversation_id
-            )
+            await self.app.store.vk_api.unpin_message(peer_id=self.conversation_id)
 
             return True
 
@@ -485,9 +471,24 @@ class GameLogic:
                 text="Игра отменена!",
                 keyboard=await keyboard_empty.get_keyboard(),
             )
-            await self.app.store.vk_api.unpin_message(
-                peer_id=self.conversation_id
-            )
+            await self.app.store.vk_api.unpin_message(peer_id=self.conversation_id)
             return True
 
         return False
+
+    async def stop_game(self):
+        self.logger.info("Конец игры")
+        await self.cancel_game(user_id=self.game_model.admin_game_id)
+        return True
+
+    async def finish_game(self):
+        self.logger.info("Завершение игры")
+
+    async def pause_game(self):
+        self.logger.info("Пауза игры")
+
+    async def resume_game(self):
+        self.logger.info("Возобновление игры")
+
+    async def handle_message(self, message: str, user_id: int, conversation_id: int):
+        """Функция обрабатывает сообщения от пользователей"""

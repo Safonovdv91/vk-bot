@@ -5,8 +5,8 @@ from aiohttp_apispec import (
     response_schema,
 )
 
-from app.game.models import GameSettings
-from app.game.schemes import (
+from app.games.game_100.models import GameSettings
+from app.games.game_100.schemes import (
     DefaultGameSettingsIdSchema,
     GameIdSchema,
     GameListQueryFilteredSchema,
@@ -123,9 +123,7 @@ class SettingsGetByIdView(AuthRequiredMixin, View):
 
         return json_response(
             data=GameSettingsSchema().dump(
-                await self.store.game_settings_accessor.get_by_id(
-                    id_=profile_id
-                )
+                await self.store.game_settings_accessor.get_by_id(id_=profile_id)
             )
         )
 
@@ -159,9 +157,7 @@ class AddSettingsView(AuthRequiredMixin, View):
 
         return json_response(
             data=GameSettingsSchema().dump(
-                await self.store.game_settings_accessor.add_settings(
-                    game_settings
-                )
+                await self.store.game_settings_accessor.add_settings(game_settings)
             )
         )
 

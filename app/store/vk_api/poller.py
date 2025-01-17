@@ -10,7 +10,7 @@ class Poller:
         self.store = store
         self.is_running = False
         self.poll_task: Task | None = None
-        self.logger = getLogger("Poller")
+        self.logger = getLogger(__name__)
 
     def _done_callback(self, result: Future) -> None:
         if result.exception():

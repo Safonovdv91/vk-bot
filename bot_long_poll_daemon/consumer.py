@@ -11,9 +11,7 @@ class MessageConsumer:
 
 async def main() -> None:
     logging.basicConfig(level=logging.DEBUG)
-    connection = await aio_pika.connect_robust(
-        "amqp://user:password@localhost/"
-    )
+    connection = await aio_pika.connect_robust("amqp://user:password@localhost/")
 
     queue_name = "test_queue"
 
@@ -30,8 +28,7 @@ async def main() -> None:
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
                 async with message.process():
-                    print(message.body)
-
+                    pass
                     # if queue.name in message.body.decode():
                     #     break
 
