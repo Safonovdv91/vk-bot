@@ -16,12 +16,12 @@ if typing.TYPE_CHECKING:
 
 
 def setup_routes(app: "Application"):
-    app.router.add_view("/game/quiz.themes_add", ThemeAddView)
-    app.router.add_view("/game/quiz.themes_list", ThemeListView)
-    app.router.add_view("/game/quiz.themes_delete_by_id", ThemeDeleteByIdView)
+    app.router.add_view("/api/game/quiz.themes_add", ThemeAddView)
+    app.router.add_view("/api/game/quiz.themes_list", ThemeListView)
+    app.router.add_view("/api/game/quiz.themes_delete_by_id", ThemeDeleteByIdView)
 
-    app.router.add_view("/game/quiz.questions_add", QuestionAddView)
-    app.router.add_view("/game/quiz.questions_get_by_id", QuestionGetByIdView)
-    app.router.add_view("/game/quiz.questions_list", QuestionListView)
-    app.router.add_view("/game/quiz.questions_delete_by_id", QuestionDeleteByIdView)
-    app.router.add_view("/game/quiz.questions_patch_by_id", QuestionPatchById)
+    app.router.add_view("/api/game/quiz.questions_add", QuestionAddView)
+    app.router.add_view("/api/game/quiz.questions_get_by_id", QuestionGetByIdView)
+    app.router.add_view("/api/game/quiz.questions_list", QuestionListView)
+    app.router.add_view("/api/game/quiz.questions_delete_by_id", QuestionDeleteByIdView)
+    app.router.add_view("/api/game/quiz.questions_patch_by_id", QuestionPatchById)

@@ -7,5 +7,5 @@ if typing.TYPE_CHECKING:
 
 
 def setup_routes(app: "Application"):
-    app.router.add_view("/vk/messages_list", MessagesListView)
-    app.router.add_view("/vk/conversations_list", ConversationsListView)
+    app.router.add_view("/api/vk/messages_list", MessagesListView)
+    app.router.add_view("/api/vk/conversations_list", ConversationsListView)
