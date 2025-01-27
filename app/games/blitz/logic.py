@@ -117,7 +117,9 @@ class GameBlitz(AbstractGame):
     @admin_id.setter
     def admin_id(self, value: int):
         if value is None:
-            raise ValueError("admin_id не может быть None") from ValueError
+            self.logger.info("admin_id is None")
+            self._admin_id = None
+            return
 
         try:
             v = int(value)
