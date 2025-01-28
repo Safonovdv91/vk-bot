@@ -13,6 +13,9 @@ from sqlalchemy.future import select
 
 from app.base.base_accessor import BaseAccessor
 from app.blitz.models import GameBlitzQuestion, GameBlitzTheme
+from app.games.blitz.constants import BlitzGameStage
+from app.games.blitz.logic import GameBlitz
+from app.games.blitz.models import BlitzGame
 
 if TYPE_CHECKING:
     from app.web.app import Application
@@ -145,7 +148,7 @@ class BlitzAccessor(BaseAccessor):
         limit: int | None = None,
     ) -> Sequence[GameBlitzQuestion]:
         if theme_id is None:
-            raise HTTPBadRequest
+            raise HTTPBadRequest(reason="Theme id is None")
 
         stmt = select(GameBlitzQuestion).where(
             GameBlitzQuestion.theme_id == int(theme_id)
@@ -162,7 +165,7 @@ class BlitzAccessor(BaseAccessor):
         questions = questions.unique().all()
 
         if len(questions) == 0:
-            raise HTTPNotFound
+            raise HTTPNotFound(reason=f"Вопросы теме: [{theme_id}] отсутствуют")
 
         return questions
 
@@ -245,3 +248,44 @@ class BlitzAccessor(BaseAccessor):
                 self.logger.exception(exc_info=exc, msg=exc)
                 await session.rollback()  # Откатываем транзакцию перед повторной попыткой
                 raise HTTPServiceUnavailable from exc
+
+    async def add_game(
+        self,
+        game: GameBlitz,
+    ) -> BlitzGame | None:
+        async with self.app.database.session() as session:
+            stmt = (
+                select(BlitzGame)
+                .where(BlitzGame.conversation_id == game.conversation_id)
+                .where(BlitzGame.game_stage == BlitzGameStage.WAIT_INIT)
+            )
+            result = await session.execute(stmt)
+            game_from_bd = result.scalar_one_or_none()
+            if game_from_bd:
+                self.logger.warning("Игра уже идет!")
+                raise HTTPConflict(reason="Игра уже идет")
+
+            game = BlitzGame(
+                conversation_id=game.conversation_id,
+                game_stage=BlitzGameStage.WAIT_INIT,
+                admin_game_id=game.admin_id,
+            )
+            self.logger.info("Добавляем игру %s", game)
+            session.add(game)
+            await session.commit()
+
+        return game
+
+    async def get_active_games(self, limit: int | None = None, offset: int | None = None):
+        async with self.app.database.session() as session:
+            stmt = select(BlitzGame).where(
+                BlitzGame.game_stage == BlitzGameStage.WAIT_INIT
+            )
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()

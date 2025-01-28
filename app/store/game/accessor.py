@@ -44,11 +44,11 @@ class GameAccessor(BaseAccessor):
             stmt = select(Question).order_by(func.random()).limit(1)
             result = await session.execute(stmt)
             question = result.scalar_one_or_none()
-
             if question is None:
                 # выбросить кастомное исключение
                 self.logger.error("В Базе данных отсутствует хотябы один вопрос!")
                 return None
+
             game = Game(
                 conversation_id=peer_id,
                 question=question,
@@ -94,7 +94,6 @@ class GameAccessor(BaseAccessor):
                 self.logger.exception(
                     exc_info=exc, msg="Не удалось зарегистрировать игрока"
                 )
-
             except sqlalchemy.exc.InterfaceError as exc:
                 await session.rollback()
                 self.logger.exception(
@@ -110,7 +109,6 @@ class GameAccessor(BaseAccessor):
             .where(Player.vk_user_id == vk_id)
             .where(Player.game_id == game_id)
         )
-
         async with self.app.database.session() as session:
             player = await session.execute(stmt)
 

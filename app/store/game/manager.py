@@ -2,6 +2,8 @@ import typing
 from abc import ABC, abstractmethod
 from logging import getLogger
 
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound
+
 from app.games.blitz.logic import AbstractGame, BlitzGameStage, GameBlitz
 from app.store.vk_api.dataclasses import (
     EventUpdate,
@@ -65,14 +67,20 @@ class GameManager(AbstractGameManager):
 
     async def _load_game_to_inner_memeory(self):
         self.logger.info("Загружаем активные игру в словарь игр")
-        self.games = await self.app.store.game_accessor.get_active_games()
+        self.games = []
+        self.games.extend(await self.app.store.game_accessor.get_active_games())
+        self.games.extend(await self.app.store.blitzes.get_active_games())
+
         self.logger.info("Игры загружены:")
         self.logger.info(self.games)
 
     async def _start_game(self, conversation_id: int, game: AbstractGame):
         self.logger.info("[%s] Начало игры : начато", conversation_id)
         self._active_games[conversation_id] = game
+        # todo accessor добавления начала игры в БД
+        await self.app.store.blitzes.add_game(game)
         await game.start_game()
+
         self.logger.info("[%s] Начало игры : выполнено", conversation_id)
         return self
 
@@ -103,6 +111,43 @@ class GameManager(AbstractGameManager):
         self.logger.info("[%s] Финиш игры : выполнено", conversation_id)
         return True
 
+    async def start_game(
+        self,
+        conversation_id: int,
+        theme_id: int | None = None,
+        admin_id: int | None = None,
+    ) -> bool:
+        self.logger.info(
+            "Запуск игры в чате %s\ntheme id: [ %s ]\nadmin id: [ %s ]",
+            conversation_id,
+            theme_id,
+            admin_id,
+        )
+        if len(self._active_games) == 0:
+            await self._load_game_to_inner_memeory()
+
+        if self._active_games.get(conversation_id):
+            self.logger.warning("Игра уже запущена")
+            raise HTTPConflict(reason="Игра уже запущена")
+
+        if theme_id is None:
+            theme_id = 1
+
+        offset = 0
+        limit = 10
+        questions = await self.app.store.blitzes.get_questions_list(
+            theme_id, offset, limit
+        )
+        game = GameBlitz(
+            self.app,
+            conversation_id=conversation_id,
+            admin_id=admin_id,
+            questions=questions,
+        )
+        await self._start_game(conversation_id, game)
+
+        return True
+
     async def handle_message(self, message, user_id, conversation_id):
         self.logger.info("игра ловит сообщение %s от юзера %s", message, user_id)
         game: AbstractGame = self._active_games.get(conversation_id)
@@ -131,19 +176,14 @@ class GameManager(AbstractGameManager):
             else:
                 return await game.handle_message(message, user_id, conversation_id)
         elif message == "/start_blitz":
-            theme_id = 1
-            offset = 0
-            limit = 10
-            questions = await self.app.store.blitzes.get_questions_list(
-                theme_id, offset, limit
-            )
-            game = GameBlitz(
-                self.app,
-                conversation_id=conversation_id,
-                admin_id=user_id,
-                questions=questions,
-            )
-            return await self._start_game(conversation_id, game)
+            try:
+                await self.start_game(
+                    conversation_id=conversation_id, theme_id=None, admin_id=user_id
+                )
+            except HTTPNotFound as exc:
+                await self.app.store.vk_api.send_message(user_id, f"{exc.reason}")
+            except HTTPConflict as exc:
+                await self.app.store.vk_api.send_message(user_id, f"{exc.reason}")
 
         return False
 
