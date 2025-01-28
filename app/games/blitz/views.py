@@ -1,10 +1,9 @@
 from aiohttp_apispec import (
     docs,
     querystring_schema,
-    request_schema,
-    response_schema,
 )
 
+from app.blitz.schemes import GameBlitzPatchSchema
 from app.games.blitz.schemes import BlitzGameStartQuerySchema, BlitzGameStopQuerySchema
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -37,19 +36,20 @@ class BlitzGameStartView(AuthRequiredMixin, View):
         )
 
 
-class BlitzGameStopView(AuthRequiredMixin, View):
+class BlitzGameChangeStatusView(AuthRequiredMixin, View):
     @docs(
         tags=["Game Blitz"],
         summary="Закончить игру Blitz",
         description="""
         ----
-        - conversation_id -  id чата в котором необходимо закончить игру blitz
+        - game_id - id игры
+        - new_status_game - в какой статус необходимо перевести     
         """,
     )
-    @querystring_schema(BlitzGameStopQuerySchema)
+    @querystring_schema(GameBlitzPatchSchema)
     async def patch(self):
-        conversation_id = self.request.query.get("conversation_id")
-
-        await self.store.game_manager.stop_game(conversation_id=conversation_id)
+        state = self.request.query.get("state")
+        conversation_id = int(self.request.query.get("conversation_id"))
+        await self.store.blitzes.change_state(game_id=conversation_id, new_state=state)
 
         return json_response(data={"status": "Игра остановлена"})

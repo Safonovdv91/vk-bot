@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields, validate
 
+from app.games.blitz.constants import BlitzGameStage
+
 
 class BlitzThemeSchema(Schema):
     id = fields.Int(required=False)
@@ -49,3 +51,14 @@ class BlitzQuestionPatchRequestsSchema(Schema):
     #     required=True,
     #     validate=validate.Length(min=2, max=10),
     # )
+
+
+class GameBlitzPatchSchema(Schema):
+    conversation_id = fields.Int(required=True, validate=validate.Range(min=1))
+    state = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )

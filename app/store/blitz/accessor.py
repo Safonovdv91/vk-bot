@@ -276,6 +276,24 @@ class BlitzAccessor(BaseAccessor):
 
         return game
 
+    async def change_state(self, game_id: int, new_state: BlitzGameStage) -> bool:
+        async with self.app.database.session() as session:
+            try:
+                stmt = (
+                    update(BlitzGame)
+                    .where(BlitzGame.id == game_id)
+                    .values(game_stage=new_state)
+                    .execution_options(synchronize_session="fetch")
+                )
+                await session.execute(stmt)
+                await session.commit()
+            except Exception as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await session.rollback()
+                raise HTTPServiceUnavailable from exc
+
+            return True
+
     async def get_active_games(self, limit: int | None = None, offset: int | None = None):
         async with self.app.database.session() as session:
             stmt = select(BlitzGame).where(

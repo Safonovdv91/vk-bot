@@ -6,6 +6,7 @@ from enum import Enum
 from logging import getLogger
 
 from app.blitz.models import GameBlitzQuestion
+from app.games.blitz.models import BlitzGame
 from app.store.vk_api.dataclasses import VkUser
 
 if typing.TYPE_CHECKING:
@@ -76,12 +77,14 @@ class GameBlitz(AbstractGame):
     def __init__(
         self,
         app: "Application",
+        game_id: int | None = None,
         game_stage: BlitzGameStage = BlitzGameStage.WAIT_ANSWER,
         conversation_id: int | None = None,
         admin_id: int = 13007796,
         questions: list[GameBlitzQuestion] | None = None,
     ):
         super().__init__()
+        self.game_id = game_id
         self.app = app
         self.logger = getLogger(__name__)
         self.game_stage = game_stage
@@ -93,7 +96,7 @@ class GameBlitz(AbstractGame):
         self.list_gamers: list[BlitzGameUser] = []
 
     @property
-    def conversation_id(self):
+    def conversation_id(self) -> int | str:
         return self._conversation_id
 
     @conversation_id.setter
@@ -204,8 +207,12 @@ class GameBlitz(AbstractGame):
         return True
 
     async def stop_game(self):
+        await self.app.store.blitzes.change_state(
+            game_id=self.id_current_game, state=BlitzGameStage.CANCELED
+        )
         self.logger.info("Конец игры вызван STOP")
         await self.pause_game()
+
         return True
 
     async def finish_game(self):
@@ -218,6 +225,9 @@ class GameBlitz(AbstractGame):
         for _ in self.list_gamers:
             msg += f"|{_.user.first_name} | - {_.user_score} \n"
 
+        await self.app.store.blitzes.change_state(
+            game_id=self.game_id, state=BlitzGameStage.FINISHED
+        )
         await self.app.store.vk_api.send_message(self.conversation_id, msg)
         self.game_stage = BlitzGameStage.FINISHED
         return True
@@ -225,6 +235,10 @@ class GameBlitz(AbstractGame):
     async def cancel_game(self):
         self.logger.info("Отмена игры")
         self.game_stage = BlitzGameStage.CANCELED
+        self.app.store.blitzes.change_state(
+            game_id=self.id_current_game, state=BlitzGameStage.CANCELED
+        )
+        await self.app.store.vk_api.send_message(self.conversation_id, "Игра отменена")
         return True
 
     async def pause_game(self):

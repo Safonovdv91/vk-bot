@@ -37,7 +37,7 @@ class AbstractGameManager(ABC):
         """
 
     @abstractmethod
-    async def _load_game_to_inner_memeory(self):
+    async def _load_game_to_inner_memory(self):
         "Загружаем игру в словарь игр, чтобы не дергать БД постоянно"
 
 
@@ -48,7 +48,7 @@ class GameManager(AbstractGameManager):
         self.app = app
         self.logger = getLogger(__name__)
         self.logger.info("Инициализирован GameManager")
-        self._active_games = {}
+        self._active_games: dict | None = None
 
     async def _take_active_game_in_chat(
         self, conversation_id: int
@@ -65,20 +65,33 @@ class GameManager(AbstractGameManager):
 
         return None
 
-    async def _load_game_to_inner_memeory(self):
-        self.logger.info("Загружаем активные игру в словарь игр")
+    async def _load_game_to_inner_memory(self):
         self.games = []
-        self.games.extend(await self.app.store.game_accessor.get_active_games())
-        self.games.extend(await self.app.store.blitzes.get_active_games())
+        self._active_games = {}
+        blitz_db_games = await self.app.store.blitzes.get_active_games()
+        blitz_games = [
+            GameBlitz(
+                self.app,
+                game_id=game.id,
+                game_stage=game.game_stage,
+                conversation_id=game.conversation_id,
+                admin_id=game.admin_game_id,
+            )
+            for game in blitz_db_games
+        ]
 
-        self.logger.info("Игры загружены:")
-        self.logger.info(self.games)
+        for game in blitz_games:
+            self._active_games[game.conversation_id] = game
+
+        self.logger.info("Игры загружены в inner_memory")
+        self.logger.info("Игры в inner_memory : %s", self._active_games)
 
     async def _start_game(self, conversation_id: int, game: AbstractGame):
         self.logger.info("[%s] Начало игры : начато", conversation_id)
         self._active_games[conversation_id] = game
         # todo accessor добавления начала игры в БД
-        await self.app.store.blitzes.add_game(game)
+        bd_game = await self.app.store.blitzes.add_game(game)
+        game.id = bd_game.game_id
         await game.start_game()
 
         self.logger.info("[%s] Начало игры : выполнено", conversation_id)
@@ -86,6 +99,10 @@ class GameManager(AbstractGameManager):
 
     async def _stop_game(self, conversation_id: int, game: AbstractGame):
         self.logger.info("[%s] Конец игры игры : начато", conversation_id)
+        await self.app.store.blitzes.change_state(
+            game_id=self._active_games[conversation_id].id,
+            new_state=BlitzGameStage.FINISHED.value,
+        )
         await game.stop_game()
         self._active_games.pop(conversation_id)
         self.logger.info("[%s] Конец игры игры : выполнено", conversation_id)
@@ -123,8 +140,6 @@ class GameManager(AbstractGameManager):
             theme_id,
             admin_id,
         )
-        if len(self._active_games) == 0:
-            await self._load_game_to_inner_memeory()
 
         if self._active_games.get(conversation_id):
             self.logger.warning("Игра уже запущена")
@@ -150,12 +165,27 @@ class GameManager(AbstractGameManager):
 
     async def handle_message(self, message, user_id, conversation_id):
         self.logger.info("игра ловит сообщение %s от юзера %s", message, user_id)
-        game: AbstractGame = self._active_games.get(conversation_id)
+        if self._active_games is None:
+            await self._load_game_to_inner_memory()
 
+        game: AbstractGame = self._active_games.get(conversation_id)
         if game and game.game_stage not in [
             BlitzGameStage.FINISHED,
             BlitzGameStage.CANCELED,
         ]:
+            methods = {
+                "/start_blitz": self._start_game,
+                "/stop": self._stop_game,
+                "/pause": self._pause_game,
+                "/resume": self._resume_game,
+                "/finish": self._finish_game,
+            }
+            if message in methods:
+                self.logger.info("Вызвана команда %s", message)
+                return await methods[message](conversation_id, game)
+
+            return await game.handle_message(message, user_id, conversation_id)
+
             if message == "/start_blitz":
                 self.logger.info("Сейчас игра уже запущена: %s", game)
                 await self.app.store.vk_api.send_message(
@@ -184,6 +214,8 @@ class GameManager(AbstractGameManager):
                 await self.app.store.vk_api.send_message(user_id, f"{exc.reason}")
             except HTTPConflict as exc:
                 await self.app.store.vk_api.send_message(user_id, f"{exc.reason}")
+            except Exception:
+                self.logger.exception("Ошибка при запуске игры")
 
         return False
 
@@ -231,10 +263,9 @@ class BotManager:
                     text=message,
                     user_id=from_id,
                 )
-                if await self.app.store.game_manager.handle_message(
+                await self.app.store.game_manager.handle_message(
                     message=message, user_id=from_id, conversation_id=conversation_id
-                ):
-                    return
+                )
 
             except Exception:
                 self.logger.exception("Ошибка при обработке сообщения")
