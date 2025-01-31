@@ -257,7 +257,7 @@ class BlitzAccessor(BaseAccessor):
             stmt = (
                 select(BlitzGame)
                 .where(BlitzGame.conversation_id == game.conversation_id)
-                .where(BlitzGame.game_stage == BlitzGameStage.WAIT_INIT)
+                .where(BlitzGame.game_stage == BlitzGameStage.WAITING_ANSWER)
             )
             result = await session.execute(stmt)
             game_from_bd = result.scalar_one_or_none()
@@ -267,7 +267,7 @@ class BlitzAccessor(BaseAccessor):
 
             game = BlitzGame(
                 conversation_id=game.conversation_id,
-                game_stage=BlitzGameStage.WAIT_INIT,
+                game_stage=BlitzGameStage.WAITING_ANSWER,
                 admin_game_id=game.admin_id,
             )
             self.logger.info("Добавляем игру %s", game)
@@ -297,7 +297,9 @@ class BlitzAccessor(BaseAccessor):
     async def get_active_games(self, limit: int | None = None, offset: int | None = None):
         async with self.app.database.session() as session:
             stmt = select(BlitzGame).where(
-                BlitzGame.game_stage == BlitzGameStage.WAIT_INIT
+                BlitzGame.game_stage.in_(
+                    [BlitzGameStage.WAITING_ANSWER, BlitzGameStage.PAUSE]
+                )
             )
             if limit:
                 stmt = stmt.limit(limit)

@@ -62,3 +62,14 @@ class GameBlitzPatchSchema(Schema):
             error="Недопустимое значение для поля state.",
         ),
     )
+
+
+class GameBlitzGetSchema(Schema):
+    game_id = fields.Int(required=True, validate=validate.Range(min=1))
+    state = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )

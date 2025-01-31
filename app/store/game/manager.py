@@ -211,6 +211,8 @@ class GameManager(AbstractGameManager):
             theme_id,
             admin_id,
         )
+        if self._active_games is None:
+            await self._load_game_to_inner_memory()
 
         if self._active_games.get(conversation_id):
             self.logger.warning("Игра уже запущена")
@@ -239,12 +241,13 @@ class GameManager(AbstractGameManager):
         if self._active_games is None:
             await self._load_game_to_inner_memory()
 
-        game: AbstractGame = self._active_games.get(conversation_id)
+        game: AbstractGame = self._active_games.get(str(conversation_id))
         if game and game.game_stage not in [
             BlitzGameStage.FINISHED,
             BlitzGameStage.CANCELED,
         ]:
             methods = {
+                "/": self._start_game,
                 "/start_blitz": self._start_game,
                 "/stop": self._stop_game,
                 "/pause": self._pause_game,
