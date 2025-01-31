@@ -70,9 +70,6 @@ class DbMessageSaver(Observer):
             update.object.message.conversation_message_id,
             update.object.message.text,
         )
-        await self.app.store.vk_api.send_message(
-            update.object.message.peer_id, "Сообщение сохраненно"
-        )
         conversation_id = update.object.message.peer_id
         message = update.object.message.text
         from_id = update.object.message.from_id
@@ -160,7 +157,7 @@ class GameManager(AbstractGameManager):
 
     async def _start_game(self, conversation_id: int, game: AbstractGame) -> None:
         self.logger.info("[%s] Начало игры : начато", conversation_id)
-        self._active_games[conversation_id] = game
+        self._active_games[str(conversation_id)] = game
         # todo accessor добавления начала игры в БД
         bd_game = await self.app.store.blitzes.add_game(game)
         game.game_id = bd_game.id
@@ -288,7 +285,7 @@ class BotManager:
         db_saver = DbMessageSaver(app)
         game_handler = VkGameMessageHandler(app)
 
-        self.add_observer(vk_notifire)
+        # self.add_observer(vk_notifire)
         self.add_observer(db_saver)
         self.add_observer(game_handler)
 

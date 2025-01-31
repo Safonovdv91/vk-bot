@@ -231,6 +231,8 @@ class GameBlitz(AbstractGame):
         )
         await self.app.store.vk_api.send_message(self.conversation_id, msg)
         self.game_stage = BlitzGameStage.FINISHED
+        # todo изменить костыль
+        self.app.store.game_manager._active_games.pop(str(self.conversation_id))
         return True
 
     async def cancel_game(self):
@@ -240,6 +242,8 @@ class GameBlitz(AbstractGame):
             game_id=self.game_id, new_state=BlitzGameStage.CANCELED
         )
         await self.app.store.vk_api.send_message(self.conversation_id, "Игра отменена")
+        # todo изменить костыль
+        self.app.store.game_manager._active_games.pop(str(self.conversation_id))
         return True
 
     async def pause_game(self):
