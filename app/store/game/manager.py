@@ -158,16 +158,15 @@ class GameManager(AbstractGameManager):
         self.logger.info("Игры загружены в inner_memory")
         self.logger.info("Игры в inner_memory : %s", self._active_games)
 
-    async def _start_game(self, conversation_id: int, game: AbstractGame):
+    async def _start_game(self, conversation_id: int, game: AbstractGame) -> None:
         self.logger.info("[%s] Начало игры : начато", conversation_id)
         self._active_games[conversation_id] = game
         # todo accessor добавления начала игры в БД
         bd_game = await self.app.store.blitzes.add_game(game)
-        game.id = bd_game.id
+        game.game_id = bd_game.id
         await game.start_game()
 
         self.logger.info("[%s] Начало игры : выполнено", conversation_id)
-        return self
 
     async def _stop_game(self, conversation_id: int, game: AbstractGame):
         self.logger.info("[%s] Конец игры игры : начато", conversation_id)

@@ -54,7 +54,7 @@ class BlitzQuestionPatchRequestsSchema(Schema):
 
 
 class GameBlitzPatchSchema(Schema):
-    conversation_id = fields.Int(required=True, validate=validate.Range(min=1))
+    game_id = fields.Int(required=True, validate=validate.Range(min=1))
     state = fields.Str(
         required=True,
         validate=validate.OneOf(

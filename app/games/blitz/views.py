@@ -49,7 +49,7 @@ class BlitzGameChangeStatusView(AuthRequiredMixin, View):
     @querystring_schema(GameBlitzPatchSchema)
     async def patch(self):
         state = self.request.query.get("state")
-        conversation_id = int(self.request.query.get("conversation_id"))
-        await self.store.blitzes.change_state(game_id=conversation_id, new_state=state)
+        game_id = int(self.request.query.get("game_id"))
+        await self.store.blitzes.change_state(game_id=game_id, new_state=state)
 
         return json_response(data={"status": "Игра остановлена"})
