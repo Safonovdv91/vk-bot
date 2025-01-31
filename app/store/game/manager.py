@@ -14,6 +14,88 @@ if typing.TYPE_CHECKING:
     from app.web.app import Application
 
 
+class Observer(ABC):
+    @abstractmethod
+    async def handle_message_update(self, update: MessageUpdate):
+        pass
+
+
+class VkPopUpNotifire(Observer):
+    def __init__(self, app: "Application"):
+        self.app = app
+        self.logger = getLogger(__name__)
+
+    async def handle_message_update(self, update: MessageUpdate) -> None:
+        print(
+            f"[{update.object.message.conversation_message_id}]NOTIFY: Пользователю {update.object.message.peer_id} отправил сообщение {update.object.message.text}"
+        )
+        await self.app.store.vk_api.send_message(
+            update.object.message.peer_id, text=f"ECHO: {update.object.message.text}"
+        )
+
+
+class MarkAsRead(Observer):
+    def __init__(self, app: "Application"):
+        self.app = app
+        self.logger = getLogger(__name__)
+
+    async def handle_message_update(self, update: MessageUpdate) -> None:
+        print(
+            f"[{update.object.message.conversation_message_id}]MARK: Сообщение прочитано"
+        )
+        await self.app.store.vk_api.mark_message_as_read(
+            peer_id=update.object.message.peer_id, grop_id=update.object.message.peer_id
+        )
+
+
+class VkGameMessageHandler(Observer):
+    def __init__(self, app: "Application"):
+        self.app = app
+        self.logger = getLogger(__name__)
+
+    async def handle_message_update(self, update: MessageUpdate) -> None:
+        print(
+            f"[{update.object.message.conversation_message_id}]GAME:"
+            f" Обработка сообщения {update.object.message.text}"
+        )
+        conversation_id = update.object.message.peer_id
+        message = update.object.message.text
+        from_id = update.object.message.from_id
+        try:
+            await self.app.store.game_manager.handle_message(
+                message=message, user_id=from_id, conversation_id=conversation_id
+            )
+
+        except Exception:
+            self.logger.exception("Ошибка при обработке сообщения")
+
+
+class DbMessageSaver(Observer):
+    def __init__(self, app: "Application"):
+        self.app = app
+        self.logger = getLogger(__name__)
+
+    async def handle_message_update(self, update: MessageUpdate) -> None:
+        self.logger.debug(
+            f"[{update.object.message.conversation_message_id}]"
+            f"DB: Сохранение {update.object.message.peer_id} сообщения {update.object.message.text}"
+        )
+        await self.app.store.vk_api.send_message(
+            update.object.message.peer_id, "Сообщение сохраненно"
+        )
+        conversation_id = update.object.message.peer_id
+        message = update.object.message.text
+        from_id = update.object.message.from_id
+        try:
+            await self.app.store.vk_messages.add_message(
+                conversation_id=conversation_id,
+                text=message,
+                user_id=from_id,
+            )
+        except Exception:
+            self.logger.exception("Ошибка при обработке сообщения")
+
+
 class AbstractGameManager(ABC):
     """Класс для работы с играми
     Принцип работы.
@@ -91,7 +173,7 @@ class GameManager(AbstractGameManager):
         self._active_games[conversation_id] = game
         # todo accessor добавления начала игры в БД
         bd_game = await self.app.store.blitzes.add_game(game)
-        game.id = bd_game.game_id
+        game.id = bd_game.id
         await game.start_game()
 
         self.logger.info("[%s] Начало игры : выполнено", conversation_id)
@@ -186,26 +268,7 @@ class GameManager(AbstractGameManager):
 
             return await game.handle_message(message, user_id, conversation_id)
 
-            if message == "/start_blitz":
-                self.logger.info("Сейчас игра уже запущена: %s", game)
-                await self.app.store.vk_api.send_message(
-                    user_id, "Сейчас игра уже запущена"
-                )
-            elif message == "/stop":
-                return await self._stop_game(conversation_id, game)
-
-            elif message == "/pause":
-                await self._pause_game(conversation_id, game)
-
-            elif message == "/resume":
-                await self._resume_game(conversation_id, game)
-
-            elif message == "/finish":
-                await self._finish_game(conversation_id, game)
-
-            else:
-                return await game.handle_message(message, user_id, conversation_id)
-        elif message == "/start_blitz":
+        if message == "/start_blitz":
             try:
                 await self.start_game(
                     conversation_id=conversation_id, theme_id=None, admin_id=user_id
@@ -227,6 +290,28 @@ class BotManager:
         self.app = app
         self.logger = getLogger(__name__)
         self.games: dict = {}
+        self.observers = []
+
+        vk_notifire = VkPopUpNotifire(app)
+        db_saver = DbMessageSaver(app)
+        game_handler = VkGameMessageHandler(app)
+
+        self.add_observer(vk_notifire)
+        self.add_observer(db_saver)
+        self.add_observer(game_handler)
+
+    def add_observer(self, observer: Observer):
+        self.observers.append(observer)
+
+    def remove_observer(self, observer: Observer):
+        self.observers.remove(observer)
+
+    async def notify_observers(self, update: MessageUpdate):
+        for observer in self.observers:
+            await observer.handle_message_update(update)
+
+    async def new_message(self, update: MessageUpdate):
+        await self.notify_observers(update)
 
     async def handle_events(self, events: list[EventUpdate]):
         """Обработка callback событий - событий при нажатие на кнопки"""
@@ -254,18 +339,4 @@ class BotManager:
     async def handle_updates(self, updates: list[MessageUpdate]):
         """Обработка пришедших сообщений от пользователей"""
         for update in updates:
-            conversation_id = update.object.message.peer_id
-            message = update.object.message.text
-            from_id = update.object.message.from_id
-            try:
-                await self.app.store.vk_messages.add_message(
-                    conversation_id=conversation_id,
-                    text=message,
-                    user_id=from_id,
-                )
-                await self.app.store.game_manager.handle_message(
-                    message=message, user_id=from_id, conversation_id=conversation_id
-                )
-
-            except Exception:
-                self.logger.exception("Ошибка при обработке сообщения")
+            await self.new_message(update)
