@@ -26,25 +26,13 @@ class VkPopUpNotifire(Observer):
         self.logger = getLogger(__name__)
 
     async def handle_message_update(self, update: MessageUpdate) -> None:
-        print(
-            f"[{update.object.message.conversation_message_id}]NOTIFY: Пользователю {update.object.message.peer_id} отправил сообщение {update.object.message.text}"
+        self.logger.debug(
+            "[%s] Notify: Обработка сообщения: [%s]",
+            update.object.message.conversation_message_id,
+            update.object.message.text,
         )
         await self.app.store.vk_api.send_message(
             update.object.message.peer_id, text=f"ECHO: {update.object.message.text}"
-        )
-
-
-class MarkAsRead(Observer):
-    def __init__(self, app: "Application"):
-        self.app = app
-        self.logger = getLogger(__name__)
-
-    async def handle_message_update(self, update: MessageUpdate) -> None:
-        print(
-            f"[{update.object.message.conversation_message_id}]MARK: Сообщение прочитано"
-        )
-        await self.app.store.vk_api.mark_message_as_read(
-            peer_id=update.object.message.peer_id, grop_id=update.object.message.peer_id
         )
 
 
@@ -54,9 +42,10 @@ class VkGameMessageHandler(Observer):
         self.logger = getLogger(__name__)
 
     async def handle_message_update(self, update: MessageUpdate) -> None:
-        print(
-            f"[{update.object.message.conversation_message_id}]GAME:"
-            f" Обработка сообщения {update.object.message.text}"
+        self.logger.debug(
+            "[%s]GAME: Обработка сообщения: [%s]",
+            update.object.message.conversation_message_id,
+            update.object.message.text,
         )
         conversation_id = update.object.message.peer_id
         message = update.object.message.text
@@ -77,8 +66,9 @@ class DbMessageSaver(Observer):
 
     async def handle_message_update(self, update: MessageUpdate) -> None:
         self.logger.debug(
-            f"[{update.object.message.conversation_message_id}]"
-            f"DB: Сохранение {update.object.message.peer_id} сообщения {update.object.message.text}"
+            "[%s]DB: сохраняем сообщение: [%s]",
+            update.object.message.conversation_message_id,
+            update.object.message.text,
         )
         await self.app.store.vk_api.send_message(
             update.object.message.peer_id, "Сообщение сохраненно"

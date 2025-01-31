@@ -4,7 +4,7 @@ from aiohttp_apispec import (
 )
 
 from app.blitz.schemes import GameBlitzPatchSchema
-from app.games.blitz.schemes import BlitzGameStartQuerySchema, BlitzGameStopQuerySchema
+from app.games.blitz.schemes import BlitzGameStartQuerySchema
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
 from app.web.utils import json_response

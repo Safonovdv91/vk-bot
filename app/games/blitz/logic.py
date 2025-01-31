@@ -6,7 +6,6 @@ from enum import Enum
 from logging import getLogger
 
 from app.blitz.models import GameBlitzQuestion
-from app.games.blitz.models import BlitzGame
 from app.store.vk_api.dataclasses import VkUser
 
 if typing.TYPE_CHECKING:
