@@ -294,6 +294,23 @@ class BlitzAccessor(BaseAccessor):
 
             return True
 
+    async def get_games_by_state(
+        self,
+        limit: int | None = None,
+        offset: int | None = None,
+        state: BlitzGameStage = None,
+    ):
+        async with self.app.database.session() as session:
+            stmt = select(BlitzGame).where(BlitzGame.game_stage == state)
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()
+
     async def get_active_games(self, limit: int | None = None, offset: int | None = None):
         async with self.app.database.session() as session:
             stmt = select(BlitzGame).where(

@@ -1,9 +1,15 @@
 from aiohttp_apispec import (
     docs,
     querystring_schema,
+    response_schema,
 )
 
-from app.blitz.schemes import GameBlitzPatchSchema
+from app.blitz.schemes import (
+    BlitzGameListQueryFilteredSchema,
+    BlitzGameListSchema,
+    GameBlitzPatchSchema,
+    QueryLimitOffsetSchema,
+)
 from app.games.blitz.schemes import BlitzGameStartQuerySchema
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -53,3 +59,60 @@ class BlitzGameChangeStatusView(AuthRequiredMixin, View):
         await self.store.blitzes.change_state(game_id=game_id, new_state=state)
 
         return json_response(data={"status": "Игра остановлена"})
+
+
+class BlitzGameListView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Game Blitz"],
+        summary="Получить игры в зависимости от состояния",
+        description="""
+        Возвращает все игры по выбранному 
+        ----
+        limit - количество игр на странице
+        offset - смещение
+        state_filter - фильтр по состоянию игры
+        ---- state ----
+        WAITING_ANSWER - Игра идет, и ожидаем ответа на вопрос
+        PAUSE - Игра приостановлена
+        FINISHED - Игра успешно завершена (Баллы игры записаны)
+        CANCELED - Игра отменена (Баллы игры не записаны)
+
+        В случае пустых значений - возвращает все что есть.
+        """,
+    )
+    @querystring_schema(BlitzGameListQueryFilteredSchema)
+    @response_schema(BlitzGameListSchema)
+    async def get(self):
+        limit = self.request.query.get("limit")
+        offset = self.request.query.get("offset")
+        state = self.request.query.get("state")
+        games = await self.store.blitzes.get_games_by_state(
+            limit=limit, offset=offset, state=state
+        )
+
+        return json_response(data=BlitzGameListSchema().dump({"games": games}))
+
+
+class BlitzGameActiveListView(AuthRequiredMixin, View):
+    @docs(
+        tags=["Game Blitz"],
+        summary="Получить активные игры (PAUSE / WAITING_ANSWER) "
+        "игры в зависимости от состояния",
+        description="""
+        Возвращает все игры по выбранному 
+        ----
+        limit - количество игр на странице
+        offset - смещение
+        ---- state ----
+        WAITING_ANSWER - Игра идет, и ожидаем ответа на вопрос
+        PAUSE - Игра приостановлена
+        """,
+    )
+    @querystring_schema(QueryLimitOffsetSchema)
+    @response_schema(BlitzGameListSchema)
+    async def get(self):
+        limit = self.request.query.get("limit")
+        offset = self.request.query.get("offset")
+        games = await self.store.blitzes.get_active_games(limit=limit, offset=offset)
+
+        return json_response(data=BlitzGameListSchema().dump({"games": games}))
