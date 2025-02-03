@@ -10,11 +10,11 @@ from aiohttp.web_exceptions import (
 )
 from sqlalchemy import delete, update
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
 from app.blitz.models import GameBlitzQuestion, GameBlitzTheme
 from app.games.blitz.constants import BlitzGameStage
-from app.games.blitz.logic import GameBlitz
 from app.games.blitz.models import BlitzGame
 
 if TYPE_CHECKING:
@@ -252,8 +252,8 @@ class BlitzAccessor(BaseAccessor):
     async def add_game(
         self,
         conversation_id: int,
-        profile_id: int =1,
-        theme_id: int= 1,
+        profile_id: int = 1,
+        theme_id: int = 1,
         admin_game_id: int | None = None,
     ) -> BlitzGame | None:
         async with self.app.database.session() as session:
@@ -281,7 +281,7 @@ class BlitzAccessor(BaseAccessor):
 
         return game
 
-    async def change_state(self, game_id: int, new_state: BlitzGameStage) -> bool:
+    async def change_state(self, game_id: int, new_state: BlitzGameStage) -> BlitzGame:
         async with self.app.database.session() as session:
             try:
                 stmt = (
@@ -292,12 +292,37 @@ class BlitzAccessor(BaseAccessor):
                 )
                 await session.execute(stmt)
                 await session.commit()
+
+                updated_game = await session.execute(
+                    select(BlitzGame).where(BlitzGame.id == game_id)
+                )
+                updated_game = updated_game.scalar_one_or_none()
+                if not updated_game:
+                    raise HTTPBadRequest(reason="Игра не найдена")
+
+                return updated_game
             except Exception as exc:
                 self.logger.exception(exc_info=exc, msg=exc)
                 await session.rollback()
                 raise HTTPServiceUnavailable from exc
 
-            return True
+    async def get_game_by_id(
+        self,
+        game_id: int,
+    ) -> BlitzGame:
+        async with self.app.database.session() as session:
+            stmt = (
+                select(BlitzGame)
+                .where(BlitzGame.id == game_id)
+                .options(joinedload(BlitzGame.theme).joinedload(GameBlitzTheme.questions))
+                .options(joinedload(BlitzGame.profile))
+            )
+            result = await session.execute(stmt)
+            game = result.unique().scalar_one_or_none()
+            if not game:
+                raise HTTPBadRequest(reason=f"Игры  с id = {game_id} не существует")
+
+        return game
 
     async def get_games_by_state(
         self,

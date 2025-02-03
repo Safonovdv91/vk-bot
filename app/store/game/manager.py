@@ -2,9 +2,10 @@ import typing
 from abc import ABC, abstractmethod
 from logging import getLogger
 
-from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPConflict, HTTPNotFound
 
 from app.games.blitz.logic import AbstractGame, BlitzGameStage, GameBlitz
+from app.games.blitz.models import BlitzGame
 from app.store.vk_api.dataclasses import (
     EventUpdate,
     MessageUpdate,
@@ -117,7 +118,7 @@ class GameManager(AbstractGameManager):
         self.app = app
         self.logger = getLogger(__name__)
         self.logger.info("Инициализирован GameManager")
-        self._active_games: dict | None = None
+        self._active_games: dict = {}
 
     async def _take_active_game_in_chat(
         self, conversation_id: int
@@ -159,8 +160,11 @@ class GameManager(AbstractGameManager):
         self.logger.info("[%s] Начало игры : начато", conversation_id)
         self._active_games[conversation_id] = game
         # todo accessor добавления начала игры в БД
-        bd_game = await self.app.store.blitzes.add_game(conversation_id=game.conversation_id, theme_id=game.theme_id,
-                                                        admin_game_id=game.admin_id)
+        bd_game = await self.app.store.blitzes.add_game(
+            conversation_id=game.conversation_id,
+            theme_id=game.theme_id,
+            admin_game_id=game.admin_id,
+        )
         game.game_id = bd_game.id
         game.game_model = bd_game
         await game.start_game()
@@ -239,6 +243,66 @@ class GameManager(AbstractGameManager):
 
         return True
 
+    async def pause_game(
+        self,
+        conversation_id: int,
+    ) -> None:
+        active_game = self._active_games.get(conversation_id)
+        if active_game is None:
+            self.logger.info("Игра в чате %s нет", conversation_id)
+            raise HTTPNotFound(reason="Игра сейчас не идет")
+
+        self.logger.info("Пауза игры в чате %s", conversation_id)
+        await self._pause_game(conversation_id, active_game)
+
+    async def resume_game(self, game_model: BlitzGame) -> None:
+        active_game = self._active_games.get(game_model.conversation_id)
+        if active_game is None:
+            game = GameBlitz(
+                self.app,
+                conversation_id=game_model.conversation_id,
+                admin_id=game_model.admin_game_id,
+                game_id=game_model.id,
+                game_stage=BlitzGameStage.WAITING_ANSWER,
+                questions=game_model.theme.questions,
+            )
+            self._active_games[game_model.conversation_id] = game
+
+            self.logger.info("Игры в чате %s нет", game_model.conversation_id)
+            raise HTTPNotFound(
+                reason="Игра сейчас не идет, возможно была"
+                " перезагрузка, иницилизировали заново"
+            )
+
+        active_game = self._active_games.get(game_model.conversation_id)
+        self.logger.info("продолжаем игру в чате %s", active_game.conversation_id)
+        await self.app.store.vk_api.send_message(
+            peer_id=active_game.conversation_id, message="Продолджаем игру"
+        )
+
+    async def finish_game(
+        self,
+        conversation_id: int,
+    ) -> None:
+        active_game = self._active_games.get(conversation_id)
+        if active_game is None:
+            self.logger.info("Игра в чате %s нет", conversation_id)
+            raise HTTPNotFound(reason="Игра сейчас не идет, возможно была перезагрузка")
+
+        self.logger.info("Пауза игры в чате %s", conversation_id)
+
+    async def cancel_game(
+        self,
+        conversation_id: int,
+    ) -> None:
+        active_game = self._active_games.get(conversation_id)
+        if active_game is None:
+            self.logger.info("Игра в чате %s нет", conversation_id)
+            raise HTTPNotFound(reason="Игра сейчас не идет, возможно была перезагрузка")
+
+        self.logger.info("Отмена игры в чате %s", conversation_id)
+        self._active_games.pop(conversation_id)
+
     async def handle_message(self, message, user_id, conversation_id):
         self.logger.info("игра ловит сообщение %s от юзера %s", message, user_id)
         if self._active_games is None:
@@ -252,7 +316,7 @@ class GameManager(AbstractGameManager):
             methods = {
                 "/": self._start_game,
                 "/start_blitz": self._start_game,
-                "/stop": self._stop_game,
+                "/cancel": self.cancel_game,
                 "/pause": self._pause_game,
                 "/resume": self._resume_game,
                 "/finish": self._finish_game,

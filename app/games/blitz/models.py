@@ -41,9 +41,7 @@ class BlitzGame(BaseModel):
     profile_id: Mapped[int] = mapped_column(
         ForeignKey("blitz_game_settings.id"), default=1
     )
-    theme_id: Mapped[int] = mapped_column(
-        ForeignKey("blitz_themes.id"), default=1
-    )
+    theme_id: Mapped[int] = mapped_column(ForeignKey("blitz_themes.id"), default=1)
 
     theme: Mapped["GameBlitzTheme"] = relationship(back_populates="games")
     profile: Mapped["GameBlitzSettings"] = relationship(back_populates="games")

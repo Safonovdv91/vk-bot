@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.games.blitz.models import BlitzPlayerQuestionGame, BlitzQuestionGame, BlitzGame
+from app.games.blitz.models import BlitzGame, BlitzPlayerQuestionGame, BlitzQuestionGame
 from app.store.database.sqlalchemy_base import BaseModel
 
 
