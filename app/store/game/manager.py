@@ -2,7 +2,7 @@ import typing
 from abc import ABC, abstractmethod
 from logging import getLogger
 
-from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest
 
 from app.games.blitz.logic import AbstractGame, BlitzGameStage, GameBlitz
 from app.store.vk_api.dataclasses import (
@@ -157,10 +157,12 @@ class GameManager(AbstractGameManager):
 
     async def _start_game(self, conversation_id: int, game: AbstractGame) -> None:
         self.logger.info("[%s] Начало игры : начато", conversation_id)
-        self._active_games[str(conversation_id)] = game
+        self._active_games[conversation_id] = game
         # todo accessor добавления начала игры в БД
-        bd_game = await self.app.store.blitzes.add_game(game)
+        bd_game = await self.app.store.blitzes.add_game(conversation_id=game.conversation_id, theme_id=game.theme_id,
+                                                        admin_game_id=game.admin_id)
         game.game_id = bd_game.id
+        game.game_model = bd_game
         await game.start_game()
 
         self.logger.info("[%s] Начало игры : выполнено", conversation_id)
@@ -168,7 +170,7 @@ class GameManager(AbstractGameManager):
     async def _stop_game(self, conversation_id: int, game: AbstractGame):
         self.logger.info("[%s] Конец игры игры : начато", conversation_id)
         await self.app.store.blitzes.change_state(
-            game_id=self._active_games[conversation_id].id,
+            game_id=self._active_games[conversation_id].game_model.id,
             new_state=BlitzGameStage.FINISHED.value,
         )
         await game.stop_game()
@@ -217,18 +219,22 @@ class GameManager(AbstractGameManager):
 
         if theme_id is None:
             theme_id = 1
+        if conversation_id is None:
+            raise HTTPBadRequest(reason="conversation_id is None")
+        if admin_id is None:
+            admin_id = 13007796
 
-        offset = 0
-        limit = 10
-        questions = await self.app.store.blitzes.get_questions_list(
-            theme_id, offset, limit
-        )
+        theme_id = int(theme_id)
+        conversation_id = int(conversation_id)
+        admin_id = int(admin_id)
+
         game = GameBlitz(
             self.app,
             conversation_id=conversation_id,
             admin_id=admin_id,
-            questions=questions,
         )
+        game.theme_id = theme_id
+
         await self._start_game(conversation_id, game)
 
         return True
@@ -238,7 +244,7 @@ class GameManager(AbstractGameManager):
         if self._active_games is None:
             await self._load_game_to_inner_memory()
 
-        game: AbstractGame = self._active_games.get(str(conversation_id))
+        game: AbstractGame = self._active_games.get(conversation_id)
         if game and game.game_stage not in [
             BlitzGameStage.FINISHED,
             BlitzGameStage.CANCELED,

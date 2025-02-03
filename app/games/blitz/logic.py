@@ -5,6 +5,7 @@ from logging import getLogger
 
 from app.blitz.models import GameBlitzQuestion
 from app.games.blitz.constants import BlitzGameStage
+from app.games.blitz.models import BlitzGame
 from app.store.vk_api.dataclasses import VkUser
 
 if typing.TYPE_CHECKING:
@@ -25,9 +26,6 @@ class AbstractGame(ABC):
 
     Если игра есть  - то проверяем
     """
-
-    def __init__(self):
-        self.game_stage = None
 
     @abstractmethod
     async def start_game(self):
@@ -68,13 +66,15 @@ class GameBlitz(AbstractGame):
     def __init__(
         self,
         app: "Application",
+        conversation_id: int,
+        admin_id: int,
         game_id: int | None = None,
         game_stage: BlitzGameStage = BlitzGameStage.WAITING_ANSWER,
-        conversation_id: int | None = None,
-        admin_id: int = 13007796,
         questions: list[GameBlitzQuestion] | None = None,
+
     ):
         super().__init__()
+        self.game_model : BlitzGame | None = None
         self.game_id = game_id
         self.app = app
         self.logger = getLogger(__name__)
@@ -183,11 +183,7 @@ class GameBlitz(AbstractGame):
 
         return False
 
-    async def start_game(self, theme_id: int | None = None):
-        if theme_id is None:
-            theme_id = 1
-            self.logger.info("Тема не задана, по умолчанию - 1")
-
+    async def start_game(self):
         self.logger.info("Начало игры")
         self.game_stage = BlitzGameStage.WAITING_ANSWER
         await self.app.store.vk_api.send_message(
@@ -196,7 +192,7 @@ class GameBlitz(AbstractGame):
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Будут заданы вопросы"
         )
-        self.questions = await self.app.store.blitzes.get_questions_list(theme_id)
+        self.questions = await self.app.store.blitzes.get_questions_list(self.game_model.theme_id)
         try:
             msg = f"Первый вопрос:\n {self.questions[0].title}"
         except TypeError:
@@ -212,8 +208,6 @@ class GameBlitz(AbstractGame):
             game_id=self.game_id, new_state=BlitzGameStage.CANCELED
         )
         self.logger.info("Конец игры вызван STOP")
-        await self.pause_game()
-
         return True
 
     async def finish_game(self):
@@ -232,7 +226,7 @@ class GameBlitz(AbstractGame):
         await self.app.store.vk_api.send_message(self.conversation_id, msg)
         self.game_stage = BlitzGameStage.FINISHED
         # todo изменить костыль
-        self.app.store.game_manager._active_games.pop(str(self.conversation_id))
+        self.app.store.game_manager._active_games.pop(self.conversation_id)
         return True
 
     async def cancel_game(self):
@@ -243,7 +237,7 @@ class GameBlitz(AbstractGame):
         )
         await self.app.store.vk_api.send_message(self.conversation_id, "Игра отменена")
         # todo изменить костыль
-        self.app.store.game_manager._active_games.pop(str(self.conversation_id))
+        self.app.store.game_manager._active_games.pop(self.conversation_id)
         return True
 
     async def pause_game(self):
