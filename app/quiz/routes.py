@@ -23,5 +23,7 @@ def setup_routes(app: "Application"):
     app.router.add_view("/api/v1/game/quiz.questions_add", QuestionAddView)
     app.router.add_view("/api/v1/game/quiz.questions_get_by_id", QuestionGetByIdView)
     app.router.add_view("/api/v1/game/quiz.questions_list", QuestionListView)
-    app.router.add_view("/api/v1/game/quiz.questions_delete_by_id", QuestionDeleteByIdView)
+    app.router.add_view(
+        "/api/v1/game/quiz.questions_delete_by_id", QuestionDeleteByIdView
+    )
     app.router.add_view("/api/v1/game/quiz.questions_patch_by_id", QuestionPatchById)

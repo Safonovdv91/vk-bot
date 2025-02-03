@@ -88,6 +88,7 @@ class BlitzGameSchemaResponse(Schema):
     )
     admin_game_id = fields.Int(required=False)
     profile_id = fields.Int(required=False)
+    theme_id = fields.Int(required=False)
 
 
 class QueryLimitOffsetSchema(Schema):

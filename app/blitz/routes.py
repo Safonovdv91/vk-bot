@@ -23,5 +23,7 @@ def setup_routes(app: "Application"):
     app.router.add_view("/api/v1/game/blitz.questions_add", QuestionAddView)
     app.router.add_view("/api/v1/game/blitz.questions_get_by_id", QuestionGetByIdView)
     app.router.add_view("/api/v1/game/blitz.questions_list", QuestionListView)
-    app.router.add_view("/api/v1/game/blitz.questions_delete_by_id", QuestionDeleteByIdView)
+    app.router.add_view(
+        "/api/v1/game/blitz.questions_delete_by_id", QuestionDeleteByIdView
+    )
     app.router.add_view("/api/v1/game/blitz.questions_patch_by_id", QuestionPatchById)
