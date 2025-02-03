@@ -251,12 +251,15 @@ class BlitzAccessor(BaseAccessor):
 
     async def add_game(
         self,
-        game: GameBlitz,
+        conversation_id: int,
+        profile_id: int =1,
+        theme_id: int= 1,
+        admin_game_id: int | None = None,
     ) -> BlitzGame | None:
         async with self.app.database.session() as session:
             stmt = (
                 select(BlitzGame)
-                .where(BlitzGame.conversation_id == game.conversation_id)
+                .where(BlitzGame.conversation_id == conversation_id)
                 .where(BlitzGame.game_stage == BlitzGameStage.WAITING_ANSWER)
             )
             result = await session.execute(stmt)
@@ -266,9 +269,11 @@ class BlitzAccessor(BaseAccessor):
                 raise HTTPConflict(reason="Игра уже идет")
 
             game = BlitzGame(
-                conversation_id=game.conversation_id,
+                conversation_id=conversation_id,
                 game_stage=BlitzGameStage.WAITING_ANSWER,
-                admin_game_id=game.admin_id,
+                admin_game_id=admin_game_id,
+                theme_id=theme_id,
+                profile_id=profile_id,
             )
             self.logger.info("Добавляем игру %s", game)
             session.add(game)
