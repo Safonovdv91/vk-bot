@@ -151,9 +151,9 @@ class BlitzAccessor(BaseAccessor):
             GameBlitzQuestion.theme_id == int(theme_id)
         )
 
-        if limit:
+        if limit and limit > 0:
             stmt = stmt.limit(limit)
-        if offset:
+        if offset and offset > 0:
             stmt = stmt.offset(offset)
 
         async with self.app.database.session() as session:
