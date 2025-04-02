@@ -190,7 +190,7 @@ class QuestionGetCountByThemeId(AuthRequiredMixin, View):
     async def get(self):
         theme_id = self.request.query.get("theme_id")
         count = await self.store.quizzes.get_questions_count(theme_id)
-        return json_response(data={"question_count": count})
+        return json_response(data={"questions_count": count})
 
 
 class QuestionPatchById(AuthRequiredMixin, View):

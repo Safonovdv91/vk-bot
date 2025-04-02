@@ -44,7 +44,7 @@ class ThemeNoIdSchema(Schema):
 
 
 class QuestionCountByThemeIdSchemaResponse(Schema):
-    question_count = fields.Int(required=True)
+    questions_count = fields.Int(required=True)
 
 
 class ThemeQueryIdSchema(ThemeIdSchema):
