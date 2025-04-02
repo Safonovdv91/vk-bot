@@ -14,8 +14,10 @@ from app.blitz.schemes import (
     BlitzThemeIdSchema as ThemeIdSchema,
     BlitzThemeListQuerySchema as ThemeListQuerySchema,
     BlitzThemeListSchema as ThemeListSchema,
+    BlitzThemeNoIdSchema,
     BlitzThemeQueryIdSchema as ThemeQueryIdSchema,
     BlitzThemeSchema as ThemeSchema,
+    QuestionCountByThemeIdSchemaResponse,
 )
 from app.web.app import View
 from app.web.mixins import AuthRequiredMixin
@@ -172,6 +174,22 @@ class QuestionListView(AuthRequiredMixin, View):
         questions = await self.store.blitzes.get_questions_list(theme_id, offset, limit)
 
         return json_response(data=QuestionListSchema().dump({"questions": questions}))
+
+
+class QuestionGetCountByThemeId(AuthRequiredMixin, View):
+    @docs(
+        tags=["Blitz"],
+        summary="Отобразить кол-во вопросов по id темы",
+        description="""
+        Отобразить кол-во вопросов по id темы, если id theme не указана
+        вернуть кол-во всего вопросов в БД.""",
+    )
+    @querystring_schema(BlitzThemeNoIdSchema)
+    @response_schema(QuestionCountByThemeIdSchemaResponse)
+    async def get(self):
+        theme_id = self.request.query.get("theme_id")
+        count = await self.store.blitzes.get_questions_count(theme_id=theme_id)
+        return json_response(data={"questions_count": count})
 
 
 class QuestionPatchById(AuthRequiredMixin, View):
