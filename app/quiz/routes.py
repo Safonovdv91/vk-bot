@@ -4,6 +4,7 @@ from app.quiz.views import (
     QuestionAddView,
     QuestionDeleteByIdView,
     QuestionGetByIdView,
+    QuestionGetCountByThemeId,
     QuestionListView,
     QuestionPatchById,
     ThemeAddView,
@@ -23,6 +24,7 @@ def setup_routes(app: "Application"):
     app.router.add_view("/api/v1/game/quiz.questions_add", QuestionAddView)
     app.router.add_view("/api/v1/game/quiz.questions_get_by_id", QuestionGetByIdView)
     app.router.add_view("/api/v1/game/quiz.questions_list", QuestionListView)
+    app.router.add_view("/api/v1/game/quiz.questions_count", QuestionGetCountByThemeId)
     app.router.add_view(
         "/api/v1/game/quiz.questions_delete_by_id", QuestionDeleteByIdView
     )
