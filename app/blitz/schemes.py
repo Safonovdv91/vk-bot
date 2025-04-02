@@ -1,5 +1,7 @@
 from marshmallow import Schema, fields, validate
 
+from app.games.blitz.constants import BlitzGameStage
+
 
 class BlitzThemeSchema(Schema):
     id = fields.Int(required=False)
@@ -27,6 +29,14 @@ class BlitzThemeIdSchema(Schema):
     theme_id = fields.Int(required=True, validate=validate.Range(min=1))
 
 
+class BlitzThemeNoIdSchema(Schema):
+    theme_id = fields.Int(required=False, validate=validate.Range(min=1))
+
+
+class QuestionCountByThemeIdSchemaResponse(Schema):
+    questions_count = fields.Int(required=True, validate=validate.Range(min=0))
+
+
 class BlitzThemeQueryIdSchema(BlitzThemeIdSchema):
     offset = fields.Int(required=False, validate=validate.Range(min=1))
     limit = fields.Int(required=False, validate=validate.Range(min=1))
@@ -49,3 +59,60 @@ class BlitzQuestionPatchRequestsSchema(Schema):
     #     required=True,
     #     validate=validate.Length(min=2, max=10),
     # )
+
+
+class GameBlitzPatchSchema(Schema):
+    game_id = fields.Int(required=True, validate=validate.Range(min=1))
+    state = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )
+
+
+class GameBlitzGetSchema(Schema):
+    game_id = fields.Int(required=True, validate=validate.Range(min=1))
+    state = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )
+
+
+class BlitzGameSchemaResponse(Schema):
+    id = fields.Int(required=False)
+    conversation_id = fields.Str(required=False)
+    pinned_conversation_message_id = fields.Str(required=True)
+    game_stage = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )
+    admin_game_id = fields.Int(required=False)
+    profile_id = fields.Int(required=False)
+    theme_id = fields.Int(required=False)
+
+
+class QueryLimitOffsetSchema(Schema):
+    limit = fields.Int(required=False, validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=1))
+
+
+class BlitzGameListQueryFilteredSchema(QueryLimitOffsetSchema):
+    state = fields.Str(
+        required=True,
+        validate=validate.OneOf(
+            [state.value for state in BlitzGameStage],
+            error="Недопустимое значение для поля state.",
+        ),
+    )
+
+
+class BlitzGameListSchema(Schema):
+    games = fields.Nested(BlitzGameSchemaResponse, many=True)

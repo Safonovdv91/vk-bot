@@ -5,6 +5,7 @@ class ThemeSchema(Schema):
     id = fields.Int(required=False)
     title = fields.Str(required=True)
     description = fields.Str(required=False)
+    questions_count = fields.Int(required=False)
 
 
 class AnswerSchema(Schema):
@@ -36,6 +37,14 @@ class ThemeListSchema(Schema):
 
 class ThemeIdSchema(Schema):
     theme_id = fields.Int(required=True, validate=validate.Range(min=1))
+
+
+class ThemeNoIdSchema(Schema):
+    theme_id = fields.Int(required=False, validate=validate.Range(min=1))
+
+
+class QuestionCountByThemeIdSchemaResponse(Schema):
+    questions_count = fields.Int(required=True)
 
 
 class ThemeQueryIdSchema(ThemeIdSchema):

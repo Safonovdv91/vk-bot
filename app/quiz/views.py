@@ -8,6 +8,7 @@ from aiohttp_apispec import (
 
 from app.quiz.models import Answer
 from app.quiz.schemes import (
+    QuestionCountByThemeIdSchemaResponse,
     QuestionIdSchema,
     QuestionListSchema,
     QuestionPatchRequestsSchema,
@@ -15,6 +16,7 @@ from app.quiz.schemes import (
     ThemeIdSchema,
     ThemeListQuerySchema,
     ThemeListSchema,
+    ThemeNoIdSchema,
     ThemeQueryIdSchema,
     ThemeSchema,
 )
@@ -67,9 +69,7 @@ class ThemeDeleteByIdView(
     @response_schema(ThemeSchema)
     async def delete(self):
         theme_id = self.request.query.get("theme_id")
-
         theme = await self.store.quizzes.delete_theme_by_id(int(theme_id))
-
         if theme is None:
             raise HTTPBadRequest(reason=f"Темы с ID = {theme_id} не существует.")
 
@@ -174,6 +174,23 @@ class QuestionListView(AuthRequiredMixin, View):
         questions = await self.store.quizzes.get_questions_list(theme_id, offset, limit)
 
         return json_response(data=QuestionListSchema().dump({"questions": questions}))
+
+
+class QuestionGetCountByThemeId(AuthRequiredMixin, View):
+    @docs(
+        tags=["Quiz"],
+        summary="Отобразить кол-во вопросов по id темы",
+        description="""
+        Отобразить кол-во вопросов по id темы, если id theme не указана
+        вернуть кол-во всего вопросов в БД.
+        """,
+    )
+    @querystring_schema(ThemeNoIdSchema)
+    @response_schema(QuestionCountByThemeIdSchemaResponse)
+    async def get(self):
+        theme_id = self.request.query.get("theme_id")
+        count = await self.store.quizzes.get_questions_count(theme_id)
+        return json_response(data={"questions_count": count})
 
 
 class QuestionPatchById(AuthRequiredMixin, View):

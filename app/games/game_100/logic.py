@@ -20,7 +20,6 @@ class Game100Logic(AbstractGame):
         app: "Application",
         game_model: Game,
     ):
-        self.game_id = None
         self.app = app
         self.logger = getLogger("BotManager")
         self.background_tasks = set()

@@ -8,7 +8,7 @@ from app.games.blitz.constants import BlitzGameStage
 from app.store.database.sqlalchemy_base import BaseModel
 
 if typing.TYPE_CHECKING:
-    from app.blitz.models import GameBlitzQuestion
+    from app.blitz.models import GameBlitzQuestion, GameBlitzTheme
 
 
 class GameBlitzSettings(BaseModel):
@@ -41,7 +41,9 @@ class BlitzGame(BaseModel):
     profile_id: Mapped[int] = mapped_column(
         ForeignKey("blitz_game_settings.id"), default=1
     )
+    theme_id: Mapped[int] = mapped_column(ForeignKey("blitz_themes.id"), default=1)
 
+    theme: Mapped["GameBlitzTheme"] = relationship(back_populates="games")
     profile: Mapped["GameBlitzSettings"] = relationship(back_populates="games")
 
     blitz_question_game: Mapped[list["BlitzQuestionGame"]] = relationship(

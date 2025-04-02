@@ -8,11 +8,14 @@ from aiohttp.web_exceptions import (
     HTTPNotFound,
     HTTPServiceUnavailable,
 )
-from sqlalchemy import delete, update
+from sqlalchemy import delete, func, update
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 
 from app.base.base_accessor import BaseAccessor
 from app.blitz.models import GameBlitzQuestion, GameBlitzTheme
+from app.games.blitz.constants import BlitzGameStage
+from app.games.blitz.models import BlitzGame
 
 if TYPE_CHECKING:
     from app.web.app import Application
@@ -145,7 +148,7 @@ class BlitzAccessor(BaseAccessor):
         limit: int | None = None,
     ) -> Sequence[GameBlitzQuestion]:
         if theme_id is None:
-            raise HTTPBadRequest
+            raise HTTPBadRequest(reason="Theme id is None")
 
         stmt = select(GameBlitzQuestion).where(
             GameBlitzQuestion.theme_id == int(theme_id)
@@ -162,9 +165,28 @@ class BlitzAccessor(BaseAccessor):
         questions = questions.unique().all()
 
         if len(questions) == 0:
-            raise HTTPNotFound
+            raise HTTPNotFound(reason=f"Вопросы теме: [{theme_id}] отсутствуют")
 
         return questions
+
+    async def get_questions_count(self, theme_id: int | None = None) -> int:
+        async with self.app.database.session() as session:
+            try:
+                if theme_id is None:
+                    count_query = select(func.count()).select_from(GameBlitzQuestion)
+                else:
+                    count_query = (
+                        select(func.count())
+                        .select_from(GameBlitzQuestion)
+                        .where(GameBlitzQuestion.theme_id == int(theme_id))
+                    )
+                result = await session.execute(count_query)
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            return result.scalar()
 
     async def delete_question_by_id(self, id_: int) -> GameBlitzQuestion | None:
         async with self.app.database.session() as session:
@@ -245,3 +267,111 @@ class BlitzAccessor(BaseAccessor):
                 self.logger.exception(exc_info=exc, msg=exc)
                 await session.rollback()  # Откатываем транзакцию перед повторной попыткой
                 raise HTTPServiceUnavailable from exc
+
+    async def add_game(
+        self,
+        conversation_id: int,
+        profile_id: int = 1,
+        theme_id: int = 1,
+        admin_game_id: int | None = None,
+    ) -> BlitzGame | None:
+        async with self.app.database.session() as session:
+            stmt = (
+                select(BlitzGame)
+                .where(BlitzGame.conversation_id == conversation_id)
+                .where(BlitzGame.game_stage == BlitzGameStage.WAITING_ANSWER)
+            )
+            result = await session.execute(stmt)
+            game_from_bd = result.scalar_one_or_none()
+            if game_from_bd:
+                self.logger.warning("Игра уже идет!")
+                raise HTTPConflict(reason="Игра уже идет")
+
+            game = BlitzGame(
+                conversation_id=conversation_id,
+                game_stage=BlitzGameStage.WAITING_ANSWER,
+                admin_game_id=admin_game_id,
+                theme_id=theme_id,
+                profile_id=profile_id,
+            )
+            self.logger.info("Добавляем игру %s", game)
+            session.add(game)
+            await session.commit()
+
+        return game
+
+    async def change_state(self, game_id: int, new_state: BlitzGameStage) -> BlitzGame:
+        async with self.app.database.session() as session:
+            try:
+                stmt = (
+                    update(BlitzGame)
+                    .where(BlitzGame.id == game_id)
+                    .values(game_stage=new_state)
+                    .execution_options(synchronize_session="fetch")
+                )
+                await session.execute(stmt)
+                await session.commit()
+
+                updated_game = await session.execute(
+                    select(BlitzGame).where(BlitzGame.id == game_id)
+                )
+                updated_game = updated_game.scalar_one_or_none()
+                if not updated_game:
+                    raise HTTPBadRequest(reason="Игра не найдена")
+
+            except Exception as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                await session.rollback()
+                raise HTTPServiceUnavailable from exc
+            return updated_game
+
+    async def get_game_by_id(
+        self,
+        game_id: int,
+    ) -> BlitzGame:
+        async with self.app.database.session() as session:
+            stmt = (
+                select(BlitzGame)
+                .where(BlitzGame.id == game_id)
+                .options(joinedload(BlitzGame.theme).joinedload(GameBlitzTheme.questions))
+                .options(joinedload(BlitzGame.profile))
+            )
+            result = await session.execute(stmt)
+            game = result.unique().scalar_one_or_none()
+            if not game:
+                raise HTTPBadRequest(reason=f"Игры  с id = {game_id} не существует")
+
+        return game
+
+    async def get_games_by_state(
+        self,
+        limit: int | None = None,
+        offset: int | None = None,
+        state: BlitzGameStage = None,
+    ):
+        async with self.app.database.session() as session:
+            stmt = select(BlitzGame).where(BlitzGame.game_stage == state)
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()
+
+    async def get_active_games(self, limit: int | None = None, offset: int | None = None):
+        async with self.app.database.session() as session:
+            stmt = select(BlitzGame).where(
+                BlitzGame.game_stage.in_(
+                    [BlitzGameStage.WAITING_ANSWER, BlitzGameStage.PAUSE]
+                )
+            )
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            result = await session.execute(stmt)
+        return result.unique().scalars().all()

@@ -222,14 +222,17 @@ class QuizAccessor(BaseAccessor):
                 self.logger.info("Вопрос с %s успешно удален", question.id)
                 return question
 
-    async def get_questions_count(self, theme_id: int | None = 1) -> int:
+    async def get_questions_count(self, theme_id: int | None = None) -> int:
         async with self.app.database.session() as session:
             try:
-                count_query = (
-                    select(func.count())
-                    .select_from(Question)
-                    .where(Question.theme_id == theme_id)
-                )
+                if theme_id is None:
+                    count_query = select(func.count()).select_from(Question)
+                else:
+                    count_query = (
+                        select(func.count())
+                        .select_from(Question)
+                        .where(Question.theme_id == int(theme_id))
+                    )
                 result = await session.execute(count_query)
 
             except sqlalchemy.exc.InterfaceError as exc:

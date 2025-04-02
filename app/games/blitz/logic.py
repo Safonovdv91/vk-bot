@@ -1,11 +1,11 @@
-import asyncio
 import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from logging import getLogger
 
 from app.blitz.models import GameBlitzQuestion
+from app.games.blitz.constants import BlitzGameStage
+from app.games.blitz.models import BlitzGame
 from app.store.vk_api.dataclasses import VkUser
 
 if typing.TYPE_CHECKING:
@@ -27,16 +27,9 @@ class AbstractGame(ABC):
     Если игра есть  - то проверяем
     """
 
-    def __init__(self):
-        self.game_stage = None
-
     @abstractmethod
     async def start_game(self):
         "Функция начала игры"
-
-    @abstractmethod
-    async def stop_game(self):
-        "Функция остановки игры"
 
     @abstractmethod
     async def finish_game(self):
@@ -65,23 +58,19 @@ class BlitzGameUser:
     user_score: int = 0
 
 
-class BlitzGameStage(Enum):
-    WAIT_ANSWER = "WAIT_ANSWER"
-    PAUSED = "PAUSED"
-    FINISHED = "FINISHED"
-    CANCELED = "CANCELED"
-
-
 class GameBlitz(AbstractGame):
     def __init__(
         self,
         app: "Application",
-        game_stage: BlitzGameStage = BlitzGameStage.WAIT_ANSWER,
-        conversation_id: int | None = None,
-        admin_id: int = 13007796,
+        conversation_id: int,
+        admin_id: int,
+        game_id: int | None = None,
+        game_stage: BlitzGameStage = BlitzGameStage.WAITING_ANSWER,
         questions: list[GameBlitzQuestion] | None = None,
     ):
         super().__init__()
+        self.game_model: BlitzGame | None = None
+        self.game_id = game_id
         self.app = app
         self.logger = getLogger(__name__)
         self.game_stage = game_stage
@@ -93,7 +82,7 @@ class GameBlitz(AbstractGame):
         self.list_gamers: list[BlitzGameUser] = []
 
     @property
-    def conversation_id(self):
+    def conversation_id(self) -> int | str:
         return self._conversation_id
 
     @conversation_id.setter
@@ -117,7 +106,9 @@ class GameBlitz(AbstractGame):
     @admin_id.setter
     def admin_id(self, value: int):
         if value is None:
-            raise ValueError("admin_id не может быть None") from ValueError
+            self.logger.info("admin_id is None")
+            self._admin_id = None
+            return
 
         try:
             v = int(value)
@@ -168,7 +159,7 @@ class GameBlitz(AbstractGame):
         if conversation_id is None:
             raise TypeError("conversation_id не может быть None")
 
-        if self.game_stage == BlitzGameStage.WAIT_ANSWER:
+        if self.game_stage == BlitzGameStage.WAITING_ANSWER:
             self.logger.info("Ожидание ответа")
 
             if self._is_true_answer(self.id_current_question, message):
@@ -189,21 +180,24 @@ class GameBlitz(AbstractGame):
 
     async def start_game(self):
         self.logger.info("Начало игры")
-        self.game_stage = BlitzGameStage.WAIT_ANSWER
+        self.game_stage = BlitzGameStage.WAITING_ANSWER
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Начата игра BLITZ"
         )
-        await asyncio.sleep(1)
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Будут заданы вопросы"
         )
-        msg = f"Первый вопрос:\n {self.questions[0].title}"
-        await self.app.store.vk_api.send_message(self.conversation_id, msg)
-        return True
+        self.questions = await self.app.store.blitzes.get_questions_list(
+            self.game_model.theme_id
+        )
+        try:
+            msg = f"Первый вопрос:\n {self.questions[0].title}"
+        except TypeError:
+            self.logger.exception("Вопросы не заданы т.к ошибка, ворпосов нет бд")
+            await self.cancel_game()
+            return False
 
-    async def stop_game(self):
-        self.logger.info("Конец игры вызван STOP")
-        await self.pause_game()
+        await self.app.store.vk_api.send_message(self.conversation_id, msg)
         return True
 
     async def finish_game(self):
@@ -216,18 +210,27 @@ class GameBlitz(AbstractGame):
         for _ in self.list_gamers:
             msg += f"|{_.user.first_name} | - {_.user_score} \n"
 
+        await self.app.store.blitzes.change_state(
+            game_id=self.game_id, new_state=BlitzGameStage.FINISHED
+        )
         await self.app.store.vk_api.send_message(self.conversation_id, msg)
         self.game_stage = BlitzGameStage.FINISHED
+        await self.app.store.game_manager.cancel_game(self.conversation_id)
+        self.logger.info("Игра [%s] завершена", self)
         return True
 
     async def cancel_game(self):
         self.logger.info("Отмена игры")
         self.game_stage = BlitzGameStage.CANCELED
+        await self.app.store.blitzes.change_state(
+            game_id=self.game_id, new_state=BlitzGameStage.CANCELED
+        )
+        await self.app.store.vk_api.send_message(self.conversation_id, "Игра отменена")
         return True
 
     async def pause_game(self):
         self.logger.info("Пауза игры")
-        self.game_stage = BlitzGameStage.PAUSED
+        self.game_stage = BlitzGameStage.PAUSE
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Игра приостановлена"
         )
@@ -235,7 +238,7 @@ class GameBlitz(AbstractGame):
 
     async def resume_game(self):
         self.logger.info("Возобновление игры")
-        self.game_stage = BlitzGameStage.WAIT_ANSWER
+        self.game_stage = BlitzGameStage.WAITING_ANSWER
         await self.app.store.vk_api.send_message(
             self.conversation_id, "Игра Возобновлена"
         )

@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class BlitzGameStage(Enum):
-    WAIT_INIT = "WAIT_INIT"
     WAITING_ANSWER = "WAITING_ANSWER"
+    PAUSE = "PAUSE"
     FINISHED = "FINISHED"
     CANCELED = "CANCELED"
