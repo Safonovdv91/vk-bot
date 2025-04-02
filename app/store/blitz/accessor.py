@@ -8,7 +8,7 @@ from aiohttp.web_exceptions import (
     HTTPNotFound,
     HTTPServiceUnavailable,
 )
-from sqlalchemy import delete, update
+from sqlalchemy import delete, func, update
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
@@ -169,6 +169,25 @@ class BlitzAccessor(BaseAccessor):
 
         return questions
 
+    async def get_questions_count(self, theme_id: int | None = None) -> int:
+        async with self.app.database.session() as session:
+            try:
+                if theme_id is None:
+                    count_query = select(func.count()).select_from(GameBlitzQuestion)
+                else:
+                    count_query = (
+                        select(func.count())
+                        .select_from(GameBlitzQuestion)
+                        .where(GameBlitzQuestion.theme_id == int(theme_id))
+                    )
+                result = await session.execute(count_query)
+
+            except sqlalchemy.exc.InterfaceError as exc:
+                self.logger.exception(exc_info=exc, msg=exc)
+                raise HTTPServiceUnavailable from exc
+
+            return result.scalar()
+
     async def delete_question_by_id(self, id_: int) -> GameBlitzQuestion | None:
         async with self.app.database.session() as session:
             try:
@@ -300,11 +319,11 @@ class BlitzAccessor(BaseAccessor):
                 if not updated_game:
                     raise HTTPBadRequest(reason="Игра не найдена")
 
-                return updated_game
             except Exception as exc:
                 self.logger.exception(exc_info=exc, msg=exc)
                 await session.rollback()
                 raise HTTPServiceUnavailable from exc
+            return updated_game
 
     async def get_game_by_id(
         self,
