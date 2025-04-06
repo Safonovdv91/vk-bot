@@ -143,7 +143,7 @@ class BlitzAccessor(BaseAccessor):
 
     async def get_questions_list(
         self,
-        theme_id: int | None = None,
+        theme_id: int | str | None = None,
         offset: int | None = None,
         limit: int | None = None,
     ) -> Sequence[GameBlitzQuestion]:
@@ -154,9 +154,9 @@ class BlitzAccessor(BaseAccessor):
             GameBlitzQuestion.theme_id == int(theme_id)
         )
 
-        if limit and limit > 0:
+        if limit:
             stmt = stmt.limit(limit)
-        if offset and offset > 0:
+        if offset:
             stmt = stmt.offset(offset)
 
         async with self.app.database.session() as session:
