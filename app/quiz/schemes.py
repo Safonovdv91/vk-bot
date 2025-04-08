@@ -27,8 +27,8 @@ class QuestionSchema(Schema):
 
 
 class ThemeListQuerySchema(Schema):
-    limit = fields.Int(required=False, validate=validate.Range(min=1))
-    offset = fields.Int(required=False, validate=validate.Range(min=1))
+    limit = fields.Int(required=False, validate=validate.Range(min=0))
+    offset = fields.Int(required=False, validate=validate.Range(min=0))
 
 
 class ThemeListSchema(Schema):
@@ -48,8 +48,8 @@ class QuestionCountByThemeIdSchemaResponse(Schema):
 
 
 class ThemeQueryIdSchema(ThemeIdSchema):
-    offset = fields.Int(required=False, validate=validate.Range(min=1))
-    limit = fields.Int(required=False, validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=0))
+    limit = fields.Int(required=False, validate=validate.Range(min=0))
 
 
 class QuestionIdSchema(Schema):

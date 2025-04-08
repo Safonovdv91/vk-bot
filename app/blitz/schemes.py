@@ -17,8 +17,8 @@ class BlitzQuestionSchema(Schema):
 
 
 class BlitzThemeListQuerySchema(Schema):
-    limit = fields.Int(required=False, validate=validate.Range(min=1))
-    offset = fields.Int(required=False, validate=validate.Range(min=1))
+    limit = fields.Int(required=False, validate=validate.Range(min=0))
+    offset = fields.Int(required=False, validate=validate.Range(min=0))
 
 
 class BlitzThemeListSchema(Schema):
@@ -38,8 +38,8 @@ class QuestionCountByThemeIdSchemaResponse(Schema):
 
 
 class BlitzThemeQueryIdSchema(BlitzThemeIdSchema):
-    offset = fields.Int(required=False, validate=validate.Range(min=1))
-    limit = fields.Int(required=False, validate=validate.Range(min=1))
+    offset = fields.Int(required=False, validate=validate.Range(min=0))
+    limit = fields.Int(required=False, validate=validate.Range(min=0))
 
 
 class BlitzQuestionIdSchema(Schema):
@@ -100,8 +100,8 @@ class BlitzGameSchemaResponse(Schema):
 
 
 class QueryLimitOffsetSchema(Schema):
-    limit = fields.Int(required=False, validate=validate.Range(min=1))
-    offset = fields.Int(required=False, validate=validate.Range(min=1))
+    limit = fields.Int(required=False, validate=validate.Range(min=0))
+    offset = fields.Int(required=False, validate=validate.Range(min=0))
 
 
 class BlitzGameListQueryFilteredSchema(QueryLimitOffsetSchema):
